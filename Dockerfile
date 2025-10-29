@@ -1,30 +1,25 @@
-# Etapa 1: Build
-FROM node:22-alpine AS builder
+# Etapa 1: Builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Instalar dependencias
 COPY package*.json ./
 RUN npm install
 
-# Copiar el resto del código
+# Copiar todo y compilar NestJS
 COPY . .
-
-# Construir la app NestJS
 RUN npm run build
 
 # Etapa 2: Producción
-FROM node:22-alpine
+FROM node:20-alpine
 WORKDIR /app
 
-# Copiar dependencias
 COPY package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
+RUN npm install --omit=dev
 
-# Copiar código compilado
+# Copiar solo la build
 COPY --from=builder /app/dist ./dist
 
-# Exponer puerto
+# Puerto
 EXPOSE 3000
-
-# Comando para iniciar la app
-CMD ["node", "dist/main"]
+CMD ["node", "dist/main.js"]
