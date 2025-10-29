@@ -1,0 +1,30 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Tank {
+  id        Int          @id @default(autoincrement())
+  name      String
+  level     Int
+  liters    Int
+  fills     Int
+  online    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt   // <-- Esto permite usar tank.updatedAt
+  tankHistory TankHistory[]
+}
+model TankHistory {
+  id      Int      @id @default(autoincrement())
+  tankId  Int
+  level   Int
+  liters  Int
+  fills   Int
+  createdAt DateTime @default(now())
+  
+  tank    Tank     @relation(fields: [tankId], references: [id])
+}
