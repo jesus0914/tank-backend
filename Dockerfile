@@ -1,39 +1,30 @@
 # Etapa 1: Build
 FROM node:22-alpine AS builder
-
 WORKDIR /app
 
-# Copiar package.json y package-lock.json
-COPY package*.json ./
-
 # Instalar dependencias
-RUN npm install --frozen-lockfile
+COPY package*.json ./
+RUN npm install
 
-# Copiar el resto del código
+# Copiar todo el código
 COPY . .
 
-# Construir el proyecto NestJS
+# Construir la app NestJS
 RUN npm run build
 
 # Etapa 2: Producción
 FROM node:22-alpine
-
 WORKDIR /app
 
-# Copiar solo los archivos necesarios para producción
+# Copiar package.json y node_modules necesarios
 COPY package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+
+# Copiar la carpeta dist compilada
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
 
-# Instalar solo dependencias de producción
-RUN npm install --omit=dev
-
-# Variables de entorno (Railway configurará las suyas)
-ENV NODE_ENV=production
-ENV PORT=3000
-
-# Exponer el puerto
+# Puerto que usará NestJS
 EXPOSE 3000
 
-# Comando para arrancar la app
+# Comando para iniciar la app
 CMD ["node", "dist/main"]
