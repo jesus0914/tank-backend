@@ -2,31 +2,27 @@
 FROM node:20 as builder
 WORKDIR /app
 
-# Copiamos los archivos de dependencias
+# Copiamos archivos de dependencias
 COPY package*.json ./
 RUN npm install
 
-# Copiamos todo el código
+# Copiamos el resto del código
 COPY . .
 
-# Generamos Prisma Client usando variables del entorno (Railway las inyecta)
-RUN npx prisma generate
-
-# Compilamos el proyecto
+# Compilamos el proyecto (no generamos prisma aquí)
 RUN npm run build
 
 
-# Etapa 2: runtime (más liviano)
+# Etapa 2: runtime
 FROM node:20-alpine as production
 WORKDIR /app
 
-# Copiamos los artefactos de la build
+# Copiamos artefactos necesarios
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 
-# Expone el puerto
 EXPOSE 3000
 
-# Comando de inicio
-CMD ["node", "dist/src/main.js"]
+# 👉 Generamos Prisma Client ya con DATABASE_URL del entorno (Railway la tiene ahora)
+CMD npx prisma generate && node dist/src/main.js
