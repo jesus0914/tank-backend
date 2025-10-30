@@ -1,5 +1,5 @@
 # ===============================
-# Etapa 1: Builder (compila Nest y genera Prisma)
+# Etapa 1: Builder
 # ===============================
 FROM node:20 AS builder
 
@@ -13,14 +13,15 @@ COPY . .
 # Copiamos .env solo si existe (Railway no lo tendrá)
 RUN if [ -f .env ]; then cp .env .env; fi
 
-# Generamos Prisma Client
-RUN npx prisma generate
+# ❌ Quitamos el prisma generate (Railway no tiene las envs en build)
+# RUN npx prisma generate
 
+# Compilamos NestJS
 RUN npm run build
 
 
 # ===============================
-# Etapa 2: Producción (imagen final ligera)
+# Etapa 2: Producción
 # ===============================
 FROM node:20-alpine AS production
 
@@ -31,10 +32,11 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
-# Copiamos .env solo si existe (Railway lo ignora)
+# Copiamos .env si existe (Railway lo ignora)
 RUN if [ -f .env ]; then cp .env .env; fi
 
 ENV NODE_ENV=production
 EXPOSE 3000
 
+# ✅ Generamos Prisma Client ya con las variables de entorno cargadas
 CMD npx prisma generate && node dist/src/main.js
