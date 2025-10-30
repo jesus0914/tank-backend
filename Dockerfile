@@ -16,7 +16,7 @@ RUN npm install
 COPY . .
 
 # Copiamos el archivo .env para que Prisma tenga las variables al generar el cliente
-COPY .env .env
+# COPY .env .env
 
 # Generamos el cliente de Prisma (usa DATABASE_URL del .env)
 RUN npx prisma generate
@@ -36,7 +36,7 @@ WORKDIR /app
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/.env .env
+# COPY --from=builder /app/.env .env
 
 # Variables de entorno por defecto (por si falta algo)
 ENV NODE_ENV=production
