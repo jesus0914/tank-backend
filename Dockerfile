@@ -11,11 +11,12 @@ RUN npm install
 # Copiamos todo el código fuente
 COPY . .
 
-# Prisma usará las variables de entorno de Railway automáticamente
-RUN npx prisma generate
+# ⚠️ OMITIMOS prisma generate aquí (Railway no tiene DATABASE_URL durante build)
+# RUN npx prisma generate
 
 # Compilamos NestJS
 RUN npm run build
+
 
 # ===============================
 # Etapa 2: Producción
@@ -27,9 +28,12 @@ WORKDIR /app
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
 
-# Railway inyecta automáticamente las env vars (como DATABASE_URL)
+# Railway inyecta automáticamente DATABASE_URL, MQTT, etc.
 ENV NODE_ENV=production
+
 EXPOSE 3000
 
-CMD ["node", "dist/src/main.js"]
+# ✅ Generamos el cliente Prisma en tiempo de ejecución (ya tiene DATABASE_URL)
+CMD npx prisma generate && node dist/src/main.js
