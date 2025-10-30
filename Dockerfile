@@ -3,25 +3,22 @@
 # ===============================
 FROM node:20 AS builder
 
-# Define el directorio de trabajo
+# Directorio de trabajo
 WORKDIR /app
 
-# Copia los archivos base del proyecto
+# Copiar archivos base
 COPY package*.json ./
 
-# Instala dependencias
+# Instalar dependencias
 RUN npm install
 
-# Copia todo el código fuente
+# Copiar el resto del código fuente
 COPY . .
 
-# Copiamos el archivo .env para que Prisma tenga las variables al generar el cliente
-# COPY .env .env
-
-# Generamos el cliente de Prisma (usa DATABASE_URL del .env)
+# ⚠️ NO ejecutar prisma generate aquí, Railway no tiene las env en build
 # RUN npx prisma generate
 
-# Compilamos el proyecto NestJS a JavaScript
+# Compilar el proyecto NestJS
 RUN npm run build
 
 
@@ -32,17 +29,17 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Copiamos solo lo necesario desde la etapa anterior
+# Copiar solo lo necesario desde el builder
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
-# COPY --from=builder /app/.env .env
+COPY --from=builder /app/prisma ./prisma
 
-# Variables de entorno por defecto (por si falta algo)
+# Definir entorno
 ENV NODE_ENV=production
 
-# Expone el puerto del backend
+# Exponer puerto de NestJS
 EXPOSE 3000
 
-# Comando de inicio (NestJS compilado)
-CMD ["node", "dist/src/main.js"]
+# ⚡ Ejecutar prisma generate en runtime (ya con DATABASE_URL disponible)
+CMD npx prisma generate && node dist/src/main.js
