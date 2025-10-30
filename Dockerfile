@@ -19,7 +19,7 @@ COPY . .
 # COPY .env .env
 
 # Generamos el cliente de Prisma (usa DATABASE_URL del .env)
-RUN npx prisma generate
+# RUN npx prisma generate
 
 # Compilamos el proyecto NestJS a JavaScript
 RUN npm run build
