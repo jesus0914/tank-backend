@@ -4,13 +4,13 @@
 FROM node:20 AS builder
 WORKDIR /app
 
-# Copiar archivos base
-# COPY package*.json ./
+# ✅ Copiar archivos base necesarios para npm install
+COPY package*.json ./       
 COPY nest-cli.json ./
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
 
-# ✅ Verificar visualmente que tsconfig se copió
+# ✅ Verificar que se copió package.json
 RUN echo "📦 Archivos copiados en /app:" && ls -la /app
 
 # Instalar dependencias
@@ -31,7 +31,7 @@ RUN npm run build
 FROM node:20-alpine AS production
 WORKDIR /app
 
-# COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
