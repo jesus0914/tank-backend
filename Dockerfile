@@ -10,8 +10,8 @@ COPY nest-cli.json ./
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
 
-# Verificar visualmente los archivos
-RUN echo "📦 Archivos en /app antes de npm install:" && ls -la /app
+# Mostrar qué archivos están en /app
+RUN echo "📦 Archivos copiados:" && ls -la /app
 
 # Instalar dependencias
 RUN npm install
@@ -19,10 +19,10 @@ RUN npm install
 # Copiar el resto del código fuente
 COPY . .
 
-# Verificar antes de compilar
+# Mostrar contenido antes del build
 RUN echo "📂 Archivos antes del build:" && ls -la /app && ls -la /app/src || true
 
-# Compilar el proyecto NestJS
+# Compilar el proyecto
 RUN npm run build
 
 # ========================
