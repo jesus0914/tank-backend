@@ -1,33 +1,30 @@
 # Etapa 1: build
-FROM node:20 as builder
+FROM node:20 AS builder
 WORKDIR /app
 
-# Copiamos archivos de dependencias
+# Copiar archivos de dependencias
 COPY package*.json ./
+COPY tsconfig*.json ./
+COPY nest-cli.json ./
 RUN npm install
 
-# Creamos la carpeta antes de copiar los tsconfig
-RUN mkdir -p apps/api
-COPY apps/api/tsconfig*.json ./apps/api/
-
-# Copiamos el resto del código
+# Copiar el resto del código fuente
 COPY . .
 
-# Compilamos el proyecto
+# Compilar el proyecto NestJS
 RUN npm run build
 
-
-# Etapa 2: runtime
-FROM node:20-alpine as production
+# Etapa 2: runtime (producción)
+FROM node:20-alpine AS production
 WORKDIR /app
 
-# Copiamos artefactos necesarios
-COPY --from=builder /app/package*.json ./            
-COPY --from=builder /app/dist ./dist
+# Copiar archivos necesarios desde la etapa anterior
+COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3000
 
-# Generamos Prisma Client ya con DATABASE_URL del entorno (Railway la tiene ahora)
+# Generar el cliente de Prisma usando la variable DATABASE_URL del entorno (Railway)
 CMD npx prisma generate && node dist/src/main.js
