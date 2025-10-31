@@ -7,13 +7,20 @@ WORKDIR /app
 # Copiar archivos base
 COPY package*.json ./
 COPY nest-cli.json ./
-COPY tsconfig*.json ./
+COPY tsconfig.json ./
+COPY tsconfig.build.json ./
+
+# ✅ Verificar visualmente que tsconfig se copió
+RUN echo "📦 Archivos copiados en /app:" && ls -la /app
 
 # Instalar dependencias
 RUN npm install
 
 # Copiar el resto del código fuente
 COPY . .
+
+# ✅ Verificar antes de compilar
+RUN echo "📂 Contenido final en /app antes del build:" && ls -la /app && ls -la /app/src || true
 
 # Compilar el proyecto (NestJS)
 RUN npm run build
@@ -31,5 +38,4 @@ COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3000
 
-# Generar el cliente de Prisma y arrancar Nest
 CMD npx prisma generate && node dist/src/main.js
