@@ -4,14 +4,16 @@ WORKDIR /app
 
 # Copiamos archivos de dependencias
 COPY package*.json ./
-COPY apps/api/tsconfig*.json ./apps/api/
-
 RUN npm install
+
+# Creamos la carpeta antes de copiar los tsconfig
+RUN mkdir -p apps/api
+COPY apps/api/tsconfig*.json ./apps/api/
 
 # Copiamos el resto del código
 COPY . .
 
-# Compilamos el proyecto (no generamos prisma aquí)
+# Compilamos el proyecto
 RUN npm run build
 
 
@@ -27,5 +29,5 @@ COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3000
 
-# 👉 Generamos Prisma Client ya con DATABASE_URL del entorno (Railway la tiene ahora)
+# Generamos Prisma Client ya con DATABASE_URL del entorno (Railway la tiene ahora)
 CMD npx prisma generate && node dist/src/main.js
