@@ -4,26 +4,24 @@
 FROM node:20 AS builder
 WORKDIR /app
 
-# ✅ Copiar explícitamente los archivos base
-COPY ./package.json ./package.json
-COPY ./package-lock.json ./package-lock.json
-COPY ./nest-cli.json ./nest-cli.json
-COPY ./tsconfig.json ./tsconfig.json
-COPY ./tsconfig.build.json ./tsconfig.build.json
+# Copiar archivos base primero
+COPY package*.json ./
+COPY nest-cli.json ./
+COPY tsconfig*.json ./
 
-# ✅ Mostrar lo que se copió
-RUN echo "📦 Archivos copiados en /app:" && ls -la /app
+# Mostrar qué hay en /app
+RUN echo "📦 Archivos base copiados:" && ls -la /app
 
-# ✅ Instalar dependencias
+# Instalar dependencias
 RUN npm install
 
-# ✅ Copiar el resto del código fuente
+# Copiar el resto del código fuente, excepto lo ignorado
 COPY . .
 
-# ✅ Mostrar contenido antes del build
-RUN echo "📂 Contenido final antes del build:" && ls -la /app && ls -la /app/src || true
+# Mostrar estructura antes de compilar
+RUN echo "📂 Contenido antes del build:" && ls -la /app && ls -la /app/src || true
 
-# ✅ Compilar NestJS
+# Compilar el proyecto
 RUN npm run build
 
 # ========================
@@ -32,11 +30,13 @@ RUN npm run build
 FROM node:20-alpine AS production
 WORKDIR /app
 
-COPY --from=builder /app/package.json ./package.json
+# Copiar solo lo necesario para ejecutar
+COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
-
+COPY --from=builder /app/tsconfig*.json ./
+# Puerto por defecto
 EXPOSE 3000
 
 CMD npx prisma generate && node dist/src/main.js
