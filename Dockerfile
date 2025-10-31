@@ -4,25 +4,17 @@
 FROM node:20 AS builder
 WORKDIR /app
 
-# Copiar archivos base
 COPY package*.json ./
 COPY nest-cli.json ./
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
 
-# 🔍 Verificar archivos copiados
 RUN echo "📦 Archivos copiados:" && ls -la /app
 
-# Instalar dependencias
 RUN npm install
-
-# Copiar el resto del código fuente
 COPY . .
 
-# 🔍 Verificar contenido antes del build
-RUN echo "📂 Contenido antes del build:" && ls -la /app && ls -la /app/src || true
-
-# Compilar el proyecto (NestJS)
+RUN echo "📂 Contenido completo:" && ls -la /app
 RUN npm run build
 
 # ========================
