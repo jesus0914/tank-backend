@@ -4,6 +4,7 @@ WORKDIR /app
 
 # Copiamos archivos de dependencias
 COPY package*.json ./
+COPY tsconfig*.json ./
 RUN npm install
 
 # Copiamos el resto del código
