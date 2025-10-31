@@ -24,6 +24,7 @@ FROM node:20-alpine AS production
 WORKDIR /app
 
 # Copiar solo lo necesario del build
+COPY --from=builder /app/tsconfig*.json ./
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
