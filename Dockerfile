@@ -10,7 +10,7 @@ COPY nest-cli.json ./
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
 
-# Mostrar qué archivos están en /app
+# 🔍 Verificar archivos copiados
 RUN echo "📦 Archivos copiados:" && ls -la /app
 
 # Instalar dependencias
@@ -19,10 +19,10 @@ RUN npm install
 # Copiar el resto del código fuente
 COPY . .
 
-# Mostrar contenido antes del build
-RUN echo "📂 Archivos antes del build:" && ls -la /app && ls -la /app/src || true
+# 🔍 Verificar contenido antes del build
+RUN echo "📂 Contenido antes del build:" && ls -la /app && ls -la /app/src || true
 
-# Compilar el proyecto
+# Compilar el proyecto (NestJS)
 RUN npm run build
 
 # ========================
@@ -37,5 +37,4 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3000
-
 CMD npx prisma generate && node dist/src/main.js
