@@ -35,3 +35,4 @@ EXPOSE 3000
 
 # Generar Prisma y ejecutar la app
 CMD npx prisma generate && node dist/src/main.js
+
