@@ -29,7 +29,6 @@ WORKDIR /app
 
 # Copiar archivos necesarios
 COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/ptsconfig*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
