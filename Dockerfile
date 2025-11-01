@@ -11,9 +11,10 @@ COPY prisma/ ./prisma/
 RUN npm install
 COPY . .
 
-# CRÍTICO: Revertir a 'npm run build' y confiar en el entorno de npm. 
-# Si el error persiste, el problema es que esta línea no se está ejecutando, sino un script de Railway.
-RUN npm run build
+# CRÍTICO: La ejecución de 'nest build' falla en Alpine por problemas de PATH.
+# Ejecutaremos el binario directamente desde su ubicación en node_modules.
+# Esta es la forma más robusta y debe funcionar si 'npm install' tuvo éxito.
+RUN ./node_modules/.bin/nest build
 
 # Etapa 2: Producción (Production)
 FROM node:20-alpine
@@ -37,6 +38,5 @@ COPY --from=builder /app/node_modules/@prisma/client/ ./node_modules/@prisma/cli
 RUN apk update && apk add openssl
 
 EXPOSE 3000
-# CRÍTICO: Cambiar CMD para usar el path completo a dist/src/main.js
-# Esto coincide con tu script 'start:prod' que era "node dist/src/main"
+# CRÍTICO: CMD para usar el path completo a dist/src/main.js
 CMD ["node", "dist/src/main.js"]
