@@ -15,9 +15,9 @@ RUN npm install
 COPY . .
 
 # CRÍTICO: La ejecución de 'nest build' falla en Alpine por problemas de PATH.
-# Ejecutaremos el binario directamente desde su ubicación en node_modules.
-# Esta es la forma más robusta y debe funcionar si 'npm install' tuvo éxito.
-RUN ./node_modules/.bin/nest build
+# Ejecutaremos el binario utilizando la RUTA ABSOLUTA dentro del contenedor. 
+# Esto elimina cualquier ambigüedad de PATH o resolución de shell.
+RUN /app/node_modules/.bin/nest build
 
 # Etapa 2: Producción (Production)
 FROM node:20-alpine
@@ -40,6 +40,6 @@ COPY --from=builder /app/node_modules/@prisma/client/ ./node_modules/@prisma/cli
 # Instalar dependencias SSL necesarias para conectar a PostgreSQL desde Alpine
 RUN apk update && apk add openssl
 
-EXPOSE 3000
+EXPOSE 8080
 # CRÍTICO: CMD para usar el path completo a dist/src/main.js
 CMD ["node", "dist/src/main.js"]
