@@ -27,8 +27,8 @@ COPY prisma/ ./prisma/
 RUN npm install
 COPY . .
 
-# CRÍTICO: Ejecutar el build usando 'npx' para forzar que el shell encuentre el binario 'nest'.
-RUN npx nest build
+# CRÍTICO: Ejecutar el binario directamente desde node_modules/.bin
+RUN ./node_modules/.bin/nest build
 
 # Etapa 2: Producción (Production)
 FROM node:20-alpine
@@ -50,6 +50,5 @@ COPY --from=builder /app/node_modules/@prisma/client/ ./node_modules/@prisma/cli
 
 # Instalar dependencias SSL necesarias para conectar a PostgreSQL desde Alpine
 RUN apk update && apk add openssl
-
 EXPOSE 3000
 CMD ["node", "dist/main.js"]
