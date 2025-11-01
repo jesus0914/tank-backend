@@ -4,17 +4,19 @@
 FROM node:20 AS builder
 WORKDIR /app
 
-# Copiar archivos base
-COPY package*.json nest-cli.json tsconfig*.json ./
-COPY prisma ./prisma
+# Copiar package.json y package-lock.json primero
+COPY package*.json ./
 
 # Instalar dependencias
 RUN npm install
 
-# Copiar el resto del código fuente
+# Copiar todo el código
 COPY . .
 
-# Compilar el proyecto (NestJS)
+# Generar Prisma Client
+RUN npx prisma generate
+
+# Compilar el proyecto NestJS
 RUN npm run build
 
 # ========================
@@ -23,15 +25,14 @@ RUN npm run build
 FROM node:20-alpine AS production
 WORKDIR /app
 
-# Copiar solo lo necesario del build
-COPY --from=builder /app/tsconfig*.json ./
+# Copiar desde builder
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
-# Exponer el puerto
+# Exponer puerto
 EXPOSE 3000
 
-# Generar Prisma y ejecutar la app
-CMD npx prisma generate && node dist/src/main.js
+# CMD para correr la app
+CMD ["node", "dist/src/main.js"]
