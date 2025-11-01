@@ -8,7 +8,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     super({
       datasources: {
         db: {
-          url: configService.get<string>('DATABASE_PUBLIC_URL'),
+          url: configService.get<string>('DATABASE_URL'),
         },
       },
     });
@@ -16,7 +16,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleInit() {
     await this.$connect();
-    console.log(`✅ Prisma conectado a ${this.configService.get<string>('DATABASE_PUBLIC_URL')}`);
+    console.log(`✅ Prisma conectado a ${this.configService.get<string>('DATABASE_URL')}`);
   }
 
   async onModuleDestroy() {
