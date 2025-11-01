@@ -1,19 +1,3 @@
-# # Etapa 1: Build
-# FROM node:20-alpine AS builder
-# WORKDIR /app
-# COPY package*.json ./
-# RUN npm install       # ← instala también devDependencies
-# COPY . .
-# RUN npx nest build     # 👈 usa npx para construir
-
-# # Etapa 2: Runtime
-# FROM node:20-alpine
-# WORKDIR /app
-# COPY --from=builder /app/dist ./dist
-# COPY package*.json ./
-# RUN npm install --omit=dev
-# EXPOSE 3000
-# CMD ["node", "dist/src/main.js"]
 # Etapa 1: Construcción (Builder)
 # Usar Node 20 para compatibilidad con NestJS
 FROM node:20-alpine AS builder
@@ -27,8 +11,9 @@ COPY prisma/ ./prisma/
 RUN npm install
 COPY . .
 
-# CRÍTICO: Ejecutar el binario directamente desde node_modules/.bin
-RUN ./node_modules/.bin/nest build
+# CRÍTICO: Revertir a 'npm run build' y confiar en el entorno de npm. 
+# Si el error persiste, el problema es que esta línea no se está ejecutando, sino un script de Railway.
+RUN npm run build
 
 # Etapa 2: Producción (Production)
 FROM node:20-alpine
@@ -50,5 +35,8 @@ COPY --from=builder /app/node_modules/@prisma/client/ ./node_modules/@prisma/cli
 
 # Instalar dependencias SSL necesarias para conectar a PostgreSQL desde Alpine
 RUN apk update && apk add openssl
+
 EXPOSE 3000
-CMD ["node", "dist/main.js"]
+# CRÍTICO: Cambiar CMD para usar el path completo a dist/src/main.js
+# Esto coincide con tu script 'start:prod' que era "node dist/src/main"
+CMD ["node", "dist/src/main.js"]
