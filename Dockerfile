@@ -8,6 +8,9 @@ COPY package*.json ./
 COPY prisma/ ./prisma/ 
 
 # 2. Instalar dependencias (incluyendo devDependencies para el build) y generar el cliente de Prisma
+# CRÍTICO: Añadir herramientas de compilación. Esto resuelve fallos en 'npm install' en Alpine 
+# cuando se encuentran dependencias nativas (como a veces ocurre con 'mqtt' o utilidades).
+RUN apk add --no-cache python3 make g++ 
 RUN npm install
 COPY . .
 
