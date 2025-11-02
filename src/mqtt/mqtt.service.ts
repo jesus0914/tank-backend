@@ -6,38 +6,41 @@ import 'dotenv/config';
 
 @Injectable()
 export class MqttService {
-  private readonly logger = new Logger(MqttService.name);
-  private client: mqtt.MqttClient;
+  private readonly logger = new Logger(MqttService.name);
+  private client: mqtt.MqttClient;
 
-  constructor(private tanksService: TanksService) {
-    const host = process.env.MQTT_HOST;
-    const port = process.env.MQTT_PORT;
-    const user = process.env.MQTT_USER;
-    const pass = process.env.MQTT_PASS;
+  constructor(private tanksService: TanksService) {
+    // CRÍTICO: Usar una URL completa de una sola variable para el despliegue
+    const brokerUrl = process.env.MQTT_BROKER_URL;
 
-    this.client = mqtt.connect(`mqtts://${host}:${port}`, {
-      username: user,
-      password: pass,
-      rejectUnauthorized: false,
-    });
+    // Si la URL del broker no está definida, no intentamos conectar
+    if (!brokerUrl) {
+        this.logger.error('❌ MQTT_BROKER_URL no está definida. La funcionalidad MQTT no estará activa.');
+        return;
+    }
 
-    this.client.on('connect', () => {
-      this.logger.log('✅ Conectado a MQTT');
-      this.client.subscribe('tank/level', () =>
-        this.logger.log('📡 Suscrito al topic tank/level'),
-      );
-    });
+    // El cliente de MQTT puede parsear el usuario, contraseña, host y puerto de la URL
+    this.client = mqtt.connect(brokerUrl, {
+      rejectUnauthorized: false,
+    });
 
-    this.client.on('message', async (topic, message) => {
-      try {
-        const data: CreateTankDto = JSON.parse(message.toString());
-        this.logger.log('📥 Datos recibidos del sensor: ' + JSON.stringify(data));
+    this.client.on('connect', () => {
+      this.logger.log('✅ Conectado a MQTT');
+      this.client.subscribe('tank/level', () =>
+        this.logger.log('📡 Suscrito al topic tank/level'),
+      );
+    });
 
-        // ⚡ Guardar o actualizar tanque en DB
-        await this.tanksService.upsertTank(data);
-      } catch (err) {
-        this.logger.error('❌ Error procesando mensaje MQTT', err);
-      }
-    });
-  }
+    this.client.on('message', async (topic, message) => {
+      try {
+        const data: CreateTankDto = JSON.parse(message.toString());
+        this.logger.log('📥 Datos recibidos del sensor: ' + JSON.stringify(data));
+
+        // ⚡ Guardar o actualizar tanque en DB
+        await this.tanksService.upsertTank(data);
+      } catch (err) {
+        this.logger.error('❌ Error procesando mensaje MQTT', err);
+      }
+    });
+  }
 }
