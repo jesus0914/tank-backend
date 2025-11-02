@@ -40,6 +40,6 @@ COPY --from=builder /app/node_modules/@prisma/client/ ./node_modules/@prisma/cli
 # Instalar dependencias SSL necesarias para conectar a PostgreSQL desde Alpine
 RUN apk update && apk add openssl
 
-EXPOSE 8080
+EXPOSE 3000
 # CRÍTICO: CMD para usar el path completo a dist/src/main.js
 CMD ["node", "dist/src/main.js"]
