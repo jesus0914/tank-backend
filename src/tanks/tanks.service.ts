@@ -116,7 +116,7 @@ export class TanksService {
     });
   }
 
-  // ⚙️ Revisión automática cada minuto
+  // ⚙️ Revisión automática cada minuto → marca offline si no hay actualizaciones
   @Cron(CronExpression.EVERY_MINUTE)
   async checkOfflineTanks() {
     const tanks = await this.prisma.tank.findMany();
