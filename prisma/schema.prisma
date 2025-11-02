@@ -8,14 +8,14 @@ generator client {
 }
 
 model Tank {
-  id        Int          @id @default(autoincrement())
-  name      String
-  level     Int
-  liters    Int
-  fills     Int
-  online    Boolean      @default(true)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt   // <-- Esto permite usar tank.updatedAt
+  id         Int           @id @default(autoincrement())
+  name       String
+  level      Float
+  liters     Float
+  fills      Int           @default(0) 
+  online     Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
   tankHistory TankHistory[]
 }
 model TankHistory {
