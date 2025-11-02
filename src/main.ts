@@ -4,7 +4,12 @@ import 'dotenv/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors();
+  app.enableCors(
+    {
+      methods: 'GET,POST,PUT,DELETE',
+      credentials: true,
+    }
+  );
 
   // CRÍTICO: Usar una variable para el puerto.
   const port = process.env.PORT || 3000;
