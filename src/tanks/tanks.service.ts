@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
@@ -10,32 +11,26 @@ export class TanksService {
     return this.prisma.tank.create({
       data: {
         id: data.tankId,
-        name: data.name || `Tanque ${data.tankId || 1}`,
-        level: data.level ?? 0,
-        liters: data.liters ?? 0,
-        fills: data.fills ?? 0, // 👈 aseguramos número
-        online: data.online ?? true,
-      },
-    });
-  }
-
-  // ♻️ Actualizar un tanque
-  async updateTank(id: number, data: any) {
-    const tank = await this.prisma.tank.update({
-      where: { id },
-      data: {
-        name: data.name ?? `Tanque ${id}`,
+        name: data.name || `Tanque ${data.tankId}`,
         level: data.level ?? 0,
         liters: data.liters ?? 0,
         fills: data.fills ?? 0,
         online: data.online ?? true,
       },
     });
+  }
+
+  // ♻️ Actualizar un tanque existente
+  async updateTank(id: number, data: any) {
+    const tank = await this.prisma.tank.update({
+      where: { id },
+      data,
+    });
     if (!tank) throw new NotFoundException('Tanque no encontrado');
     return tank;
   }
 
-  // ❌ Eliminar tanque
+  // ❌ Eliminar un tanque
   async deleteTank(id: number) {
     return this.prisma.tank.delete({ where: { id } });
   }
@@ -47,14 +42,14 @@ export class TanksService {
       tank = await this.prisma.tank.update({
         where: { id: data.tankId },
         data: {
-          name: data.name ?? `Tanque ${data.tankId}`,
-          level: data.level ?? 0,
-          liters: data.liters ?? 0,
-          fills: data.fills ?? 0, // 👈 aseguramos número
+          name: data.name,
+          level: data.level,
+          liters: data.liters,
+          fills: data.fills ?? 0,
           online: data.online ?? true,
         },
       });
-    } catch (error: any) {
+    } catch (error) {
       if (error.code === 'P2025') {
         tank = await this.createTank(data);
         console.log(`🆕 Tanque creado automáticamente con id ${data.tankId}`);
@@ -67,8 +62,8 @@ export class TanksService {
     await this.prisma.tankHistory.create({
       data: {
         tankId: tank.id,
-        level: data.level ?? 0,
-        liters: data.liters ?? 0,
+        level: data.level,
+        liters: data.liters,
         fills: data.fills ?? 0,
       },
     });
@@ -76,23 +71,11 @@ export class TanksService {
     return tank;
   }
 
-  // 🔄 Actualizar el estado online
-  async updateTankStatus(id: number) {
-    const tank = await this.prisma.tank.findUnique({ where: { id } });
-    if (!tank) throw new NotFoundException(`Tanque con ID ${id} no encontrado`);
-
-    const now = new Date();
-    const diffInMinutes = (now.getTime() - tank.updatedAt.getTime()) / 60000;
-
-    const online = diffInMinutes < 5;
-    await this.prisma.tank.update({ where: { id }, data: { online } });
-
-    return online;
-  }
-
   // 📋 Obtener todos los tanques
   async getAllTanks() {
-    return this.prisma.tank.findMany({ include: { tankHistory: true } });
+    return this.prisma.tank.findMany({
+      include: { tankHistory: true },
+    });
   }
 
   // 🔍 Obtener tanque por ID
@@ -105,7 +88,7 @@ export class TanksService {
     return tank;
   }
 
-  // 📜 Obtener historial
+  // 📜 Obtener historial de un tanque
   async getTankHistory(id: number) {
     const history = await this.prisma.tankHistory.findMany({
       where: { tankId: id },
@@ -123,11 +106,33 @@ export class TanksService {
     });
   }
 
-  // 🔎 Buscar por nombre
+  // 🔎 Buscar tanques por nombre
   async findByName(name: string) {
     return this.prisma.tank.findMany({
-      where: { name: { contains: name, mode: 'insensitive' } },
+      where: {
+        name: { contains: name, mode: 'insensitive' },
+      },
       include: { tankHistory: true },
     });
+  }
+
+  // ⚙️ Revisión automática cada minuto
+  @Cron(CronExpression.EVERY_MINUTE)
+  async checkOfflineTanks() {
+    const tanks = await this.prisma.tank.findMany();
+    const now = new Date();
+
+    for (const tank of tanks) {
+      const diffMinutes =
+        (now.getTime() - new Date(tank.updatedAt).getTime()) / 60000;
+
+      if (diffMinutes > 2 && tank.online) {
+        await this.prisma.tank.update({
+          where: { id: tank.id },
+          data: { online: false },
+        });
+        console.log(`⚠️ Tanque ${tank.id} marcado como fuera de línea`);
+      }
+    }
   }
 }
