@@ -13,7 +13,7 @@ class AppController {
 }
 
 @Module({
-  imports: [ConfigModule.forRoot(), TanksModule, MqttModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), TanksModule, MqttModule],
   controllers: [AppController],
   providers: [PrismaService],
 })
