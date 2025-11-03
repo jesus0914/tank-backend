@@ -139,7 +139,7 @@ export class TanksService {
 
     for (const tank of tanks) {
       const diffMinutes =
-        (now.getTime() - new Date(tank.updatedAt).getTime()) / 16000;
+        (now.getTime() - new Date(tank.updatedAt).getTime()) / 60000;
 
       // 🟥 Si pasaron más de 2 minutos desde la última actualización, marcar offline
       if (diffMinutes > 2 && tank.online) {

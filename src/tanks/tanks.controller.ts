@@ -18,6 +18,10 @@ export class TanksController {
     return this.tanksService.findByName(name);
   }
 
+   @Get('check-offline')
+  async manualCheckOffline() {
+    return this.tanksService.checkOfflineTanks();
+  }
   // 📜 Obtener todo el historial
   @Get('history/all')
   getAllHistory() {
