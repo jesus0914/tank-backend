@@ -131,24 +131,32 @@ export class TanksService {
   }
 
   // ⚙️ Revisión automática → marca tanques como offline si no se actualizan en > 2 min
-  @Cron(CronExpression.EVERY_MINUTE)
-  async checkOfflineTanks() {
-    this.logger.log('🕐 Revisión automática de tanques iniciada...');
-    const tanks = await this.prisma.tank.findMany();
-    const now = new Date();
+ @Cron(CronExpression.EVERY_MINUTE)
+async checkOfflineTanks() {
+  this.logger.log('🕐 Revisión automática de tanques iniciada...');
+  const tanks = await this.prisma.tank.findMany();
+  const now = new Date();
 
-    for (const tank of tanks) {
-      const diffMinutes =
-        (now.getTime() - new Date(tank.updatedAt).getTime()) / 60000;
+  for (const tank of tanks) {
+    const diffMinutes =
+      (now.getTime() - new Date(tank.updatedAt).getTime()) / 60000;
 
-      // 🟥 Si pasaron más de 2 minutos desde la última actualización, marcar offline
-      if (diffMinutes > 2 && tank.online) {
-        await this.prisma.tank.update({
-          where: { id: tank.id },
-          data: { online: false },
-        });
-        this.logger.warn(`⚠️ Tanque ${tank.id} (${tank.name}) marcado como fuera de línea`);
-      }
+    this.logger.debug(
+      `⏱️ Tanque ${tank.id}: ${diffMinutes.toFixed(2)} min desde última actualización`
+    );
+
+    if (diffMinutes > 2 && tank.online) {
+      await this.prisma.tank.update({
+        where: { id: tank.id },
+        data: { online: false },
+      });
+      this.logger.warn(`⚠️ Tanque ${tank.id} marcado como fuera de línea`);
     }
   }
+
+  return { message: 'Chequeo completado' };
+}
+
+    
+  
 }
