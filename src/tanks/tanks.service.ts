@@ -17,7 +17,7 @@ export class TanksService {
         level: data.level ?? 0,
         liters: data.liters ?? 0,
         fills: data.fills ?? 0,
-        online: data.online ?? true,
+        online: data.online ?? false,
       },
     });
 
@@ -145,7 +145,7 @@ export class TanksService {
       if (diffMinutes > 2 && tank.online) {
         await this.prisma.tank.update({
           where: { id: tank.id },
-          data: { online: true },
+          data: { online: false },
         });
         this.logger.warn(`⚠️ Tanque ${tank.id} (${tank.name}) marcado como fuera de línea`);
       }

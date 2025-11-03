@@ -13,7 +13,7 @@ model Tank {
   level      Float
   liters     Float
   fills      Int           @default(0) 
-  online     Boolean       @default(true)
+  online     Boolean       @default(false)
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
   tankHistory TankHistory[]
