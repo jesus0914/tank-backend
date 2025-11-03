@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
 export class TanksService {
+  private readonly logger = new Logger(TanksService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   // 🧱 Crear un tanque nuevo
@@ -15,24 +17,30 @@ export class TanksService {
         level: data.level ?? 0,
         liters: data.liters ?? 0,
         fills: data.fills ?? 0,
-        online: data.online ?? true,
+        online: data.online ?? false,
       },
     });
   }
 
   // ♻️ Actualizar un tanque existente
   async updateTank(id: number, data: any) {
-    const tank = await this.prisma.tank.update({
-      where: { id },
-      data,
-    });
-    if (!tank) throw new NotFoundException('Tanque no encontrado');
-    return tank;
+    try {
+      return await this.prisma.tank.update({
+        where: { id },
+        data,
+      });
+    } catch {
+      throw new NotFoundException('Tanque no encontrado');
+    }
   }
 
   // ❌ Eliminar un tanque
   async deleteTank(id: number) {
-    return this.prisma.tank.delete({ where: { id } });
+    try {
+      return await this.prisma.tank.delete({ where: { id } });
+    } catch {
+      throw new NotFoundException(`Tanque con ID ${id} no encontrado`);
+    }
   }
 
   // ⚡ Crear o actualizar (Upsert)
@@ -49,10 +57,10 @@ export class TanksService {
           online: data.online ?? true,
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       if (error.code === 'P2025') {
         tank = await this.createTank(data);
-        console.log(`🆕 Tanque creado automáticamente con id ${data.tankId}`);
+        this.logger.log(`🆕 Tanque creado automáticamente con id ${data.tankId}`);
       } else {
         throw error;
       }
@@ -116,10 +124,10 @@ export class TanksService {
     });
   }
 
-  // ⚙️ Revisión automática cada minuto → marca offline si no hay actualizaciones
+  // ⚙️ Revisión automática → marca tanques fuera de línea si no se actualizan en > 2 min
   @Cron(CronExpression.EVERY_MINUTE)
   async checkOfflineTanks() {
-    console.log('🕐 Revisión de tanques iniciada');
+    this.logger.log('🕐 Revisión automática de tanques iniciada...');
     const tanks = await this.prisma.tank.findMany();
     const now = new Date();
 
@@ -132,7 +140,7 @@ export class TanksService {
           where: { id: tank.id },
           data: { online: false },
         });
-        console.log(`⚠️ Tanque ${tank.id} marcado como fuera de línea`);
+        this.logger.warn(`⚠️ Tanque ${tank.id} marcado como fuera de línea`);
       }
     }
   }
