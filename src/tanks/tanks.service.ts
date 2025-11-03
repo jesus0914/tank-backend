@@ -1,17 +1,12 @@
-import { Injectable, NotFoundException, Logger, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from 'src/prisma.service';
-import { TanksGateway } from './tanks.gateway';
 
 @Injectable()
 export class TanksService {
   private readonly logger = new Logger(TanksService.name);
 
-  constructor(
-    private readonly prisma: PrismaService,
-    @Inject(forwardRef(() => TanksGateway))
-    private readonly tanksGateway: TanksGateway,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   // 🧱 Crear un tanque nuevo
   async createTank(data: any) {
@@ -26,7 +21,7 @@ export class TanksService {
       },
     });
 
-    await this.tanksGateway.emitAllTanks(); // 🔴 Enviar a frontend
+    this.logger.log(`🆕 Tanque creado: ${tank.name}`);
     return tank;
   }
 
@@ -37,7 +32,6 @@ export class TanksService {
         where: { id },
         data,
       });
-      await this.tanksGateway.emitTankUpdate(id); // 🔴 Enviar actualización en tiempo real
       return tank;
     } catch {
       throw new NotFoundException('Tanque no encontrado');
@@ -47,9 +41,7 @@ export class TanksService {
   // ❌ Eliminar un tanque
   async deleteTank(id: number) {
     try {
-      const tank = await this.prisma.tank.delete({ where: { id } });
-      await this.tanksGateway.emitAllTanks(); // 🔴 Notificar frontend
-      return tank;
+      return await this.prisma.tank.delete({ where: { id } });
     } catch {
       throw new NotFoundException(`Tanque con ID ${id} no encontrado`);
     }
@@ -59,6 +51,7 @@ export class TanksService {
   async upsertTank(data: any) {
     let tank;
     try {
+      // 🟢 Si el tanque existe, se actualiza
       tank = await this.prisma.tank.update({
         where: { id: data.tankId },
         data: {
@@ -66,13 +59,14 @@ export class TanksService {
           level: data.level,
           liters: data.liters,
           fills: data.fills ?? 0,
-          online: data.online ?? true,
+          online: true, // 🔥 Al recibir datos, se marca como en línea
         },
       });
     } catch (error: any) {
+      // 🔵 Si no existe, se crea
       if (error.code === 'P2025') {
-        tank = await this.createTank(data);
-        this.logger.log(`🆕 Tanque creado automáticamente con id ${data.tankId}`);
+        tank = await this.createTank({ ...data, online: true });
+        this.logger.log(`🆕 Tanque creado automáticamente con ID ${data.tankId}`);
       } else {
         throw error;
       }
@@ -88,7 +82,6 @@ export class TanksService {
       },
     });
 
-    await this.tanksGateway.emitTankUpdate(tank.id); // 🔴 Emitir al frontend
     return tank;
   }
 
@@ -137,7 +130,7 @@ export class TanksService {
     });
   }
 
-  // ⚙️ Revisión automática → marca tanques fuera de línea si no se actualizan en > 2 min
+  // ⚙️ Revisión automática → marca tanques como offline si no se actualizan en > 2 min
   @Cron(CronExpression.EVERY_MINUTE)
   async checkOfflineTanks() {
     this.logger.log('🕐 Revisión automática de tanques iniciada...');
@@ -146,15 +139,15 @@ export class TanksService {
 
     for (const tank of tanks) {
       const diffMinutes =
-        (now.getTime() - new Date(tank.updatedAt).getTime()) / 60000;
+        (now.getTime() - new Date(tank.updatedAt).getTime()) / 16000;
 
+      // 🟥 Si pasaron más de 2 minutos desde la última actualización, marcar offline
       if (diffMinutes > 2 && tank.online) {
         await this.prisma.tank.update({
           where: { id: tank.id },
           data: { online: false },
         });
-        this.logger.warn(`⚠️ Tanque ${tank.id} marcado como fuera de línea`);
-        await this.tanksGateway.emitTankUpdate(tank.id); // 🔴 Notificar cambio de estado
+        this.logger.warn(`⚠️ Tanque ${tank.id} (${tank.name}) marcado como fuera de línea`);
       }
     }
   }
