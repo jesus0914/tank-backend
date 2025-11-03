@@ -1,16 +1,21 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from 'src/prisma.service';
+import { TanksGateway } from './tanks.gateway';
 
 @Injectable()
 export class TanksService {
   private readonly logger = new Logger(TanksService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => TanksGateway))
+    private readonly tanksGateway: TanksGateway,
+  ) {}
 
   // 🧱 Crear un tanque nuevo
   async createTank(data: any) {
-    return this.prisma.tank.create({
+    const tank = await this.prisma.tank.create({
       data: {
         id: data.tankId,
         name: data.name || `Tanque ${data.tankId}`,
@@ -20,15 +25,20 @@ export class TanksService {
         online: data.online ?? false,
       },
     });
+
+    await this.tanksGateway.emitAllTanks(); // 🔴 Enviar a frontend
+    return tank;
   }
 
   // ♻️ Actualizar un tanque existente
   async updateTank(id: number, data: any) {
     try {
-      return await this.prisma.tank.update({
+      const tank = await this.prisma.tank.update({
         where: { id },
         data,
       });
+      await this.tanksGateway.emitTankUpdate(id); // 🔴 Enviar actualización en tiempo real
+      return tank;
     } catch {
       throw new NotFoundException('Tanque no encontrado');
     }
@@ -37,7 +47,9 @@ export class TanksService {
   // ❌ Eliminar un tanque
   async deleteTank(id: number) {
     try {
-      return await this.prisma.tank.delete({ where: { id } });
+      const tank = await this.prisma.tank.delete({ where: { id } });
+      await this.tanksGateway.emitAllTanks(); // 🔴 Notificar frontend
+      return tank;
     } catch {
       throw new NotFoundException(`Tanque con ID ${id} no encontrado`);
     }
@@ -76,6 +88,7 @@ export class TanksService {
       },
     });
 
+    await this.tanksGateway.emitTankUpdate(tank.id); // 🔴 Emitir al frontend
     return tank;
   }
 
@@ -141,6 +154,7 @@ export class TanksService {
           data: { online: false },
         });
         this.logger.warn(`⚠️ Tanque ${tank.id} marcado como fuera de línea`);
+        await this.tanksGateway.emitTankUpdate(tank.id); // 🔴 Notificar cambio de estado
       }
     }
   }
