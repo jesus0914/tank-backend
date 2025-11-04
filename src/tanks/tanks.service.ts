@@ -143,7 +143,7 @@ async checkOfflineTanks() {
       (now.getTime() - new Date(tank.updatedAt).getTime()) / 1000;
 
     // Si pasaron más de 60 segundos sin actualización → marcar offline
-    if (diffSeconds > 60 && tank.online) {
+    if (diffSeconds > 30 && tank.online) {
       await this.prisma.tank.update({
         where: { id: tank.id },
         data: { online: false },
