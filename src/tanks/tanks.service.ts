@@ -132,32 +132,24 @@ export class TanksService {
   }
 
   // ⚙️ Revisión automática → marca tanques como offline si no se actualizan en > 2 min
- @Cron(CronExpression.EVERY_MINUTE)
+@Cron('*/30 * * * * *') // cada 30 segundos
 async checkOfflineTanks() {
-  this.logger.log('🕐 Revisión automática de tanques iniciada...');
+  this.logger.log('🕐 Revisión automática de tanques (cada 30s) iniciada...');
   const tanks = await this.prisma.tank.findMany();
   const now = new Date();
 
   for (const tank of tanks) {
-    const diffMinutes =
-      (now.getTime() - new Date(tank.updatedAt).getTime()) / 30000;
+    const diffSeconds =
+      (now.getTime() - new Date(tank.updatedAt).getTime()) / 1000;
 
-    this.logger.debug(
-      `⏱️ Tanque ${tank.id}: ${diffMinutes.toFixed(1)} min desde última actualización`
-    );
-
-    if (diffMinutes > 1 && tank.online) {
+    // Si pasaron más de 60 segundos sin actualización → marcar offline
+    if (diffSeconds > 60 && tank.online) {
       await this.prisma.tank.update({
         where: { id: tank.id },
         data: { online: false },
       });
-      this.logger.warn(`⚠️ Tanque ${tank.id} marcado como fuera de línea`);
+      this.logger.warn(`⚠️ Tanque ${tank.id} fuera de línea (${diffSeconds.toFixed(0)}s sin actualización)`);
     }
   }
-
-  return { message: 'Chequeo completado' };
 }
-
-    
-  
 }
