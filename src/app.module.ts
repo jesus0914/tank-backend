@@ -3,6 +3,7 @@ import { PrismaService } from './prisma.service';
 import { TanksModule } from './tanks/tanks.module';
 import { MqttModule } from './mqtt/mqtt.module';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Controller()
 class AppController {
@@ -13,7 +14,7 @@ class AppController {
 }
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), TanksModule, MqttModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), TanksModule, MqttModule,ScheduleModule.forRoot()],
   controllers: [AppController],
   providers: [PrismaService],
 })

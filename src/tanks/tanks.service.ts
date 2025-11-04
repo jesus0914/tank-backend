@@ -140,13 +140,13 @@ async checkOfflineTanks() {
 
   for (const tank of tanks) {
     const diffMinutes =
-      (now.getTime() - new Date(tank.updatedAt).getTime()) / 60000;
+      (now.getTime() - new Date(tank.updatedAt).getTime()) / 30000;
 
     this.logger.debug(
-      `⏱️ Tanque ${tank.id}: ${diffMinutes.toFixed(2)} min desde última actualización`
+      `⏱️ Tanque ${tank.id}: ${diffMinutes.toFixed(1)} min desde última actualización`
     );
 
-    if (diffMinutes > 2 && tank.online) {
+    if (diffMinutes > 1 && tank.online) {
       await this.prisma.tank.update({
         where: { id: tank.id },
         data: { online: false },
