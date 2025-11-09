@@ -1,5 +1,5 @@
 import { Module, Controller, Get } from '@nestjs/common';
-import { PrismaService } from './prisma.service';
+import { PrismaService } from './prisma/prisma.service';
 import { TanksModule } from './tanks/tanks.module';
 import { MqttModule } from './mqtt/mqtt.module';
 import { ConfigModule } from '@nestjs/config';
