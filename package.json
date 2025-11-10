@@ -37,6 +37,7 @@
     "dotenv": "^17.2.3",
     "helmet": "^8.1.0",
     "mqtt": "^5.14.1",
+    "multer": "^2.0.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",

@@ -35,8 +35,11 @@ export class UsersService {
       });
     }
 
-    // Actualizar usuario
-    async updateUser(id: number, data: { name?: string; email?: string }) {
+    async updateUser(
+      id: number,
+      data: { name?: string; email?: string; avatarUrl?: string }
+    ) {
+      // Validar email
       if (data.email) {
         const exists = await this.prisma.user.findUnique({ where: { email: data.email } });
         if (exists && exists.id !== id) throw new BadRequestException('Email ya registrado');
@@ -47,12 +50,14 @@ export class UsersService {
         data: {
           name: data.name,
           email: data.email,
+          avatarUrl: data.avatarUrl, // ✅ agregar campo avatarUrl
         },
         select: {
           id: true,
           email: true,
           name: true,
           role: true,
+          avatarUrl: true, // ✅ incluir para que frontend lo reciba
         },
       });
     }
