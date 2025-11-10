@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import 'dotenv/config'; 
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -10,7 +11,12 @@ async function bootstrap() {
       credentials: true,
     }
   );
-
+  // Validación global
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,             // elimina props extra no declaradas en DTO
+    forbidNonWhitelisted: true,  // lanza error si envían props no permitidas
+    transform: true,             // convierte tipos automáticamente (string -> enum, etc.)
+  }));
   // CRÍTICO: Usar una variable para el puerto.
   const port = process.env.PORT || 3000;
   
