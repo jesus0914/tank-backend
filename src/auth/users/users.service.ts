@@ -20,6 +20,43 @@ export class UsersService {
       },
     });
   }
+      // Obtener un usuario por ID
+    async getUserById(id: number) {
+      return this.prisma.user.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    }
+
+    // Actualizar usuario
+    async updateUser(id: number, data: { name?: string; email?: string }) {
+      if (data.email) {
+        const exists = await this.prisma.user.findUnique({ where: { email: data.email } });
+        if (exists && exists.id !== id) throw new BadRequestException('Email ya registrado');
+      }
+
+      return this.prisma.user.update({
+        where: { id },
+        data: {
+          name: data.name,
+          email: data.email,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+        },
+      });
+    }
+
 
   // Obtener usuarios filtrando por rol
   async getUsersByRole(role: string) {

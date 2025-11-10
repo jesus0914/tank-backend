@@ -5,6 +5,7 @@ import { MqttModule } from './mqtt/mqtt.module';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './auth/users/users.module';
 
 @Controller()
 class AppController {
@@ -21,6 +22,7 @@ class AppController {
     TanksModule,
     MqttModule,
     AuthModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [PrismaService],

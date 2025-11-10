@@ -4,19 +4,18 @@ import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
-import { GetUsersDto } from './dto/get-users.dto';
 
 @Controller('users')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) {}
 
-  // Listar usuarios (filtro opcional por rol)
-  @Get()
+  // 🔒 Solo usuarios ADMIN pueden listar
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
-  async getUsers(@Query() query: GetUsersDto) {
-    if (query.role) {
-      return this.usersService.getUsersByRole(query.role);
+  @Get()
+  getAll(@Query('role') role?: string) {
+    if (role) {
+      return this.usersService.getUsersByRole(role);
     }
     return this.usersService.getAllUsers();
   }
