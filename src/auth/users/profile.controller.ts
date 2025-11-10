@@ -14,19 +14,19 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import type { Express } from 'express';
+import { Request } from 'express';
 
 @Controller('auth')
 export class ProfileController {
   constructor(private readonly usersService: UsersService) {}
 
-  // 🔒 Obtener perfil del usuario conectado
   @UseGuards(JwtAuthGuard)
   @Get('profile')
-  getProfile(@Req() req) {
+  getProfile(@Req() req: Request & { user: { id: number } }) {
     return this.usersService.getUserById(req.user.id);
   }
 
-  // 🔒 Actualizar perfil del usuario conectado con avatar opcional
   @UseGuards(JwtAuthGuard)
   @Patch('profile')
   @UseInterceptors(FileInterceptor('avatar', {
@@ -35,7 +35,7 @@ export class ProfileController {
       filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
         const ext = extname(file.originalname);
-        cb(null, `${req.user.id}-${uniqueSuffix}${ext}`);
+        cb(null, `${(req as any).user.id}-${uniqueSuffix}${ext}`);
       }
     }),
     fileFilter: (req, file, cb) => {
@@ -46,8 +46,8 @@ export class ProfileController {
     }
   }))
   async updateProfile(
-    @Req() req, 
-    @Body() data: { name?: string; email?: string }, 
+    @Req() req: Request & { user: { id: number } },
+    @Body() data: { name?: string; email?: string; avatarUrl?: string },
     @UploadedFile() avatar?: Express.Multer.File
   ) {
     if (avatar) {
