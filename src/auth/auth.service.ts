@@ -84,16 +84,18 @@ export class AuthService {
     return this.jwtService.sign(payload, { expiresIn: '7d' });
   }
 
-      async updateProfile(
-      userId: number,
-      data: { name?: string; email?: string; avatarUrl?: string },
-    ) {
-      await this.prisma.user.update({
-        where: { id: userId },
-        data,
-      });
-      return this.getProfile(userId);
-    }
+    async updateProfile(
+    userId: number,
+    data: { name?: string; email?: string; avatarUrl?: string },
+  ) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data,
+    });
+
+    return this.getProfile(userId);
+  }
+
 
       /**
        * Obtener perfil del usuario

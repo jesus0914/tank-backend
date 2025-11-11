@@ -1,66 +1,66 @@
 import {
   Controller,
-  Post,
-  Body,
-  UseGuards,
-  Request,
   Patch,
-  UploadedFile,
+  UseGuards,
   UseInterceptors,
-  Get,
+  UploadedFile,
+  Body,
+  Req,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import type { Request } from 'express';
+
+import { AuthService } from './auth.service';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { UserRole } from '@prisma/client';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('register')
-  async register(@Body() dto: RegisterDto) {
-    const role: UserRole = dto.role ?? UserRole.USER;
-    return this.authService.register(dto.email, dto.password, dto.name, role);
-  }
-
-  @Post('login')
-  async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto.email, dto.password);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('profile')
-  async getProfile(@Request() req) {
-    return this.authService.getProfile(req.user.id);
-  }
-
+  /**
+   * Actualizar perfil del usuario (nombre, email, avatar)
+   */
+  @Patch('profile')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('avatar', {
       storage: diskStorage({
         destination: './uploads/avatars',
         filename: (req, file, cb) => {
-          const uniqueName = `avatar-${Date.now()}${extname(file.originalname)}`;
-          cb(null, uniqueName);
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const ext = extname(file.originalname);
+          cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
         },
       }),
+      fileFilter: (req, file, cb) => {
+        if (!file.mimetype.startsWith('image/')) {
+          return cb(new Error('Solo se permiten imágenes'), false);
+        }
+        cb(null, true);
+      },
     }),
   )
-  @Patch('profile')
   async updateProfile(
-    @Request() req,
+    @UploadedFile() avatar: Express.Multer.File,
     @Body() body: { name?: string; email?: string },
-    @UploadedFile() file?: Express.Multer.File,
+    @Req() req: Request,
   ) {
-    const avatarUrl = file ? `/uploads/avatars/${file.filename}` : undefined;
-    return this.authService.updateProfile(req.user.id, {
-      ...body,
-      ...(avatarUrl && { avatarUrl }),
-    });
+    // 🔹 Type assertion: decimos que req.user es JwtPayload
+    const user = req.user as JwtPayload;
+    const userId = user.sub;
+
+    const data: any = { ...body };
+
+    if (avatar) {
+      data.avatarUrl = `/uploads/avatars/${avatar.filename}`;
+    }
+
+    // Llamamos al servicio para actualizar en DB
+    const updatedProfile = await this.authService.updateProfile(userId, data);
+
+    return updatedProfile;
   }
 }
