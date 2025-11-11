@@ -33,12 +33,13 @@ export class AuthController {
     return this.authService.login(dto.email, dto.password);
   }
 
-  // Obtener perfil
+  // 🔹 Obtener perfil del usuario autenticado
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Request() req) {
     const user = await this.authService.getProfile(req.user.id);
-    const baseUrl = process.env.BASE_URL || 'https://tank-backend-production.up.railway.app';
+    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+
     return {
       ...user,
       avatarUrl: user.avatarUrl
@@ -47,13 +48,13 @@ export class AuthController {
     };
   }
 
-  // Actualizar perfil y avatar
+  // 🔹 Actualizar perfil y avatar
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('avatar', {
       storage: diskStorage({
         destination: './uploads/avatars',
-        filename: (_, file, cb) => {
+        filename: (req, file, cb) => {
           const uniqueName = `avatar-${Date.now()}${extname(file.originalname)}`;
           cb(null, uniqueName);
         },
@@ -74,8 +75,8 @@ export class AuthController {
       ...(avatarUrl && { avatarUrl }),
     });
 
-    // Normalizar URL absoluta para frontend
-    const baseUrl = process.env.BASE_URL || 'https://tank-backend-production.up.railway.app';
+    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+
     return {
       ...updatedUser,
       avatarUrl: updatedUser.avatarUrl
