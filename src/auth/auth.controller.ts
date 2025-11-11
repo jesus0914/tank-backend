@@ -33,15 +33,15 @@ export class AuthController {
     return this.authService.login(dto.email, dto.password);
   }
 
-  // ✅ Nuevo: obtener perfil del usuario autenticado
+  // ✅ Obtener perfil del usuario autenticado
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Request() req) {
     const user = await this.authService.getProfile(req.user.id);
 
-    // Construye la URL completa del avatar
+    // Usa una única variable base para todas las URLs
     const baseUrl =
-      process.env.API_URL || 'https://tank-backend-production.up.railway.app';
+      process.env.BASE_URL || 'https://tank-backend-production.up.railway.app';
 
     const avatarUrl = user.avatarUrl
       ? `${baseUrl}${user.avatarUrl.startsWith('/') ? '' : '/'}${user.avatarUrl}`
@@ -50,7 +50,7 @@ export class AuthController {
     return { ...user, avatarUrl };
   }
 
-  // 🔹 Actualizar perfil y avatar
+  // ✅ Actualizar perfil y avatar
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('avatar', {
@@ -79,15 +79,15 @@ export class AuthController {
       ...(avatarUrl && { avatarUrl }),
     });
 
-    // 🔹 Devuelve la URL completa del avatar
     const baseUrl =
-      process.env.API_URL || 'https://tank-backend-production.up.railway.app';
+      process.env.BASE_URL || 'https://tank-backend-production.up.railway.app';
+
     return {
       ...updatedUser,
-      avatarUrl: avatarUrl
-        ? `${baseUrl}${avatarUrl}`
-        : updatedUser.avatarUrl
-        ? `${baseUrl}${updatedUser.avatarUrl}`
+      avatarUrl: updatedUser.avatarUrl
+        ? `${baseUrl}${
+            updatedUser.avatarUrl.startsWith('/') ? '' : '/'
+          }${updatedUser.avatarUrl}`
         : null,
     };
   }
