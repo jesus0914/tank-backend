@@ -22,18 +22,20 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  // Registro de usuario
   @Post('register')
   async register(@Body() dto: RegisterDto): Promise<AuthResponse> {
     const role: UserRole = dto.role ?? UserRole.USER;
     return this.authService.register(dto.email, dto.password, dto.name, role);
   }
 
+  // Login de usuario
   @Post('login')
   async login(@Body() dto: LoginDto): Promise<AuthResponse> {
     return this.authService.login(dto.email, dto.password);
   }
 
-  // 🔹 Obtener perfil del usuario autenticado
+  // Obtener perfil del usuario autenticado
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Request() req) {
@@ -48,13 +50,13 @@ export class AuthController {
     };
   }
 
-  // 🔹 Actualizar perfil y avatar
+  // Actualizar perfil y avatar
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('avatar', {
       storage: diskStorage({
         destination: './uploads/avatars',
-        filename: (req, file, cb) => {
+        filename: (_, file, cb) => {
           const uniqueName = `avatar-${Date.now()}${extname(file.originalname)}`;
           cb(null, uniqueName);
         },
@@ -68,19 +70,21 @@ export class AuthController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     const userId = req.user.id;
+
+    // Construir URL absoluta del avatar
+    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
     const avatarUrl = file ? `/uploads/avatars/${file.filename}` : undefined;
 
+    // Actualizar datos en la DB
     const updatedUser = await this.authService.updateProfile(userId, {
       ...body,
       ...(avatarUrl && { avatarUrl }),
     });
 
-    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-
     return {
       ...updatedUser,
       avatarUrl: updatedUser.avatarUrl
-        ? `${baseUrl}${updatedUser.avatarUrl.startsWith('/') ? '' : '/'}${updatedUser.avatarUrl}`
+        ? `${baseUrl}${updatedUser.avatarUrl.startsWith('/') ? '' : '/'}${updatedUser.avatarUrl}?t=${Date.now()}`
         : null,
     };
   }
