@@ -33,18 +33,27 @@ export class AuthController {
     return this.authService.login(dto.email, dto.password);
   }
 
+  // Obtener perfil
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Request() req) {
-    return this.authService.getProfile(req.user.id);
+    const user = await this.authService.getProfile(req.user.id);
+    const baseUrl = process.env.BASE_URL || 'https://tank-backend-production.up.railway.app';
+    return {
+      ...user,
+      avatarUrl: user.avatarUrl
+        ? `${baseUrl}${user.avatarUrl.startsWith('/') ? '' : '/'}${user.avatarUrl}`
+        : null,
+    };
   }
 
+  // Actualizar perfil y avatar
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('avatar', {
       storage: diskStorage({
         destination: './uploads/avatars',
-        filename: (req, file, cb) => {
+        filename: (_, file, cb) => {
           const uniqueName = `avatar-${Date.now()}${extname(file.originalname)}`;
           cb(null, uniqueName);
         },
@@ -60,9 +69,18 @@ export class AuthController {
     const userId = req.user.id;
     const avatarUrl = file ? `/uploads/avatars/${file.filename}` : undefined;
 
-    return this.authService.updateProfile(userId, {
+    const updatedUser = await this.authService.updateProfile(userId, {
       ...body,
       ...(avatarUrl && { avatarUrl }),
     });
+
+    // Normalizar URL absoluta para frontend
+    const baseUrl = process.env.BASE_URL || 'https://tank-backend-production.up.railway.app';
+    return {
+      ...updatedUser,
+      avatarUrl: updatedUser.avatarUrl
+        ? `${baseUrl}${updatedUser.avatarUrl.startsWith('/') ? '' : '/'}${updatedUser.avatarUrl}`
+        : null,
+    };
   }
 }
