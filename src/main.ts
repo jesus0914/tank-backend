@@ -1,29 +1,37 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import 'dotenv/config'; 
+import 'dotenv/config';
 import { ValidationPipe } from '@nestjs/common';
+import { join } from 'path';
+import { NestExpressApplication } from '@nestjs/platform-express'; // ✅ Importante
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // ✅ Usa NestExpressApplication
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
   app.enableCors({
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
 
-  // Validación global
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,             // elimina props extra no declaradas en DTO
-    forbidNonWhitelisted: true,  // lanza error si envían props no permitidas
-    transform: true,             // convierte tipos automáticamente (string -> enum, etc.)
-  }));
-  // CRÍTICO: Usar una variable para el puerto.
+  // ✅ Validación global
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
+  // ✅ Servir archivos estáticos (como imágenes subidas)
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+    prefix: '/uploads/',
+  });
+
   const port = process.env.PORT || 3000;
-  
-  // Escuchar en el puerto detectado y en todas las interfaces ('0.0.0.0')
   await app.listen(port, '0.0.0.0');
 
-  // Ahora el log siempre mostrará el puerto correcto (3000 local, 8080 en Railway)
   console.log(`🚀 API corriendo en http://0.0.0.0:${port}`);
 }
 bootstrap();

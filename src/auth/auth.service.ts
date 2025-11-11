@@ -88,4 +88,25 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('Usuario no encontrado');
     return user.role === role;
   }
+
+  async updateProfile(
+  userId: number,
+  data: { name?: string; email?: string; avatarUrl?: string },
+) {
+  const user = await this.prisma.user.update({
+    where: { id: userId },
+    data,
+  });
+
+  // 🔹 Devuelve datos actualizados al frontend
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatarUrl: user.avatarUrl
+      ? `${process.env.BASE_URL}${user.avatarUrl}`
+      : null,
+  };
+}
+
 }
