@@ -24,11 +24,10 @@ async function bootstrap() {
     }),
   );
 
-  // ✅ Servir archivos estáticos (como imágenes subidas)
+  // ✅ Servir archivos estáticos (IMPORTANTE)
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     prefix: '/uploads/',
   });
-
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
 

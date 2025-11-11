@@ -3,12 +3,11 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # 1. Instalar herramientas de compilación de Alpine necesarias para dependencias nativas
-# (Aunque ya no estamos fallando en nest, esto asegura que npm install funcione correctamente)
 RUN apk update && apk add python3 make g++
 
 # 2. Copiar archivos de dependencias y el schema.prisma
 COPY package*.json ./
-COPY prisma/ ./prisma/ 
+COPY prisma/ ./prisma/
 
 # 3. Instalar dependencias completas (incluyendo devDependencies para el build)
 RUN npm install
@@ -26,22 +25,24 @@ WORKDIR /app
 COPY package*.json ./
 
 # 2. Instalar solo dependencias de producción
-RUN npm install --omit=dev 
+RUN npm install --omit=dev
 
 # 3. Copiar el código compilado (dist)
 COPY --from=builder /app/dist ./dist
 
-# 4. Copiar el esquema de Prisma (necesario para la generación)
+# 4. Copiar el esquema de Prisma
 COPY prisma/ ./prisma/
 
-# 5. Instalar dependencias SSL para conectar a PostgreSQL desde Alpine
+# ✅ 5. Copiar también las imágenes subidas
+COPY --from=builder /app/uploads ./uploads
+
+# 6. Instalar dependencias SSL para conectar a PostgreSQL desde Alpine
 RUN apk update && apk add openssl
 
-# 6. CRÍTICO: Ejecutar prisma generate en el contenedor de producción.
-# Esto crea el cliente de Prisma basado en el schema y lo enlaza con la DATABASE_URL.
-# La variable DATABASE_URL debe estar definida en Railway para que este paso funcione.
+# 7. Generar cliente de Prisma
 RUN npx prisma generate
 
 EXPOSE 3000
-# CRÍTICO: CMD para usar el path completo a dist/src/main.js
+
+# 8. Iniciar aplicación NestJS
 CMD ["node", "dist/src/main.js"]
