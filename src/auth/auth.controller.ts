@@ -7,6 +7,7 @@ import {
   Patch,
   UploadedFile,
   UseInterceptors,
+  Get,
 } from '@nestjs/common';
 import { AuthService, AuthResponse } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -32,14 +33,32 @@ export class AuthController {
     return this.authService.login(dto.email, dto.password);
   }
 
-  // 🔹 PATCH /auth/profile — actualizar nombre, email, avatar
+  // ✅ Nuevo: obtener perfil del usuario autenticado
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  async getProfile(@Request() req) {
+    const user = await this.authService.getProfile(req.user.id);
+
+    // Construye la URL completa del avatar
+    const baseUrl =
+      process.env.API_URL || 'https://tank-backend-production.up.railway.app';
+
+    const avatarUrl = user.avatarUrl
+      ? `${baseUrl}${user.avatarUrl.startsWith('/') ? '' : '/'}${user.avatarUrl}`
+      : null;
+
+    return { ...user, avatarUrl };
+  }
+
+  // 🔹 Actualizar perfil y avatar
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('avatar', {
       storage: diskStorage({
         destination: './uploads/avatars',
         filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
           const ext = extname(file.originalname);
           cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
         },
@@ -55,9 +74,21 @@ export class AuthController {
     const userId = req.user.id;
     const avatarUrl = file ? `/uploads/avatars/${file.filename}` : undefined;
 
-    return this.authService.updateProfile(userId, {
+    const updatedUser = await this.authService.updateProfile(userId, {
       ...body,
-      avatarUrl,
+      ...(avatarUrl && { avatarUrl }),
     });
+
+    // 🔹 Devuelve la URL completa del avatar
+    const baseUrl =
+      process.env.API_URL || 'https://tank-backend-production.up.railway.app';
+    return {
+      ...updatedUser,
+      avatarUrl: avatarUrl
+        ? `${baseUrl}${avatarUrl}`
+        : updatedUser.avatarUrl
+        ? `${baseUrl}${updatedUser.avatarUrl}`
+        : null,
+    };
   }
 }
