@@ -84,45 +84,34 @@ export class AuthService {
     return this.jwtService.sign(payload, { expiresIn: '7d' });
   }
 
-  /**
-   * Obtener perfil del usuario
-   */
- async getProfile(userId: number) {
-  const user = await this.prisma.user.findUnique({
-    where: { id: userId },
-  });
+      async updateProfile(
+      userId: number,
+      data: { name?: string; email?: string; avatarUrl?: string },
+    ) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data,
+      });
+      return this.getProfile(userId);
+    }
 
-  if (!user) throw new UnauthorizedException('Usuario no encontrado');
+      /**
+       * Obtener perfil del usuario
+       */
+    async getProfile(userId: number) {
+      const user = await this.prisma.user.findUnique({ where: { id: userId } });
+      if (!user) throw new UnauthorizedException('Usuario no encontrado');
 
-  const baseUrl =
-    process.env.API_URL || 'https://tank-backend-production.up.railway.app';
-
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    avatarUrl: user.avatarUrl
-      ? `${baseUrl}${user.avatarUrl.startsWith('/') ? '' : '/'}${user.avatarUrl}`
-      : null,
-  };
-}
-
-
-  /**
-   * Actualizar perfil (nombre, email, avatar)
-   */
-  async updateProfile(
-    userId: number,
-    data: { name?: string; email?: string; avatarUrl?: string },
-  ) {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data,
-    });
-
-    // 🔹 Devuelve el perfil actualizado con URL absoluta
-    return this.getProfile(userId);
-  }
+      const baseUrl = process.env.API_URL || 'http://localhost:3000';
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        avatarUrl: user.avatarUrl
+          ? `${baseUrl}${user.avatarUrl.startsWith('/') ? '' : '/'}${user.avatarUrl}`
+          : null,
+      };
+    }
 
   /**
    * Validar usuario
