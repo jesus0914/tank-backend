@@ -87,25 +87,26 @@ export class AuthService {
   /**
    * Obtener perfil del usuario
    */
-  async getProfile(userId: number) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
+ async getProfile(userId: number) {
+  const user = await this.prisma.user.findUnique({
+    where: { id: userId },
+  });
 
-    if (!user) throw new UnauthorizedException('Usuario no encontrado');
+  if (!user) throw new UnauthorizedException('Usuario no encontrado');
 
-    const baseUrl =
-      process.env.API_URL || 'https://tank-backend-production.up.railway.app';
+  const baseUrl =
+    process.env.API_URL || 'https://tank-backend-production.up.railway.app';
 
-    return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      avatarUrl: user.avatarUrl
-        ? `${baseUrl}${user.avatarUrl.startsWith('/') ? '' : '/'}${user.avatarUrl}`
-        : null,
-    };
-  }
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatarUrl: user.avatarUrl
+      ? `${baseUrl}${user.avatarUrl.startsWith('/') ? '' : '/'}${user.avatarUrl}`
+      : null,
+  };
+}
+
 
   /**
    * Actualizar perfil (nombre, email, avatar)
