@@ -29,38 +29,46 @@ export class UsersService {
           email: true,
           name: true,
           role: true,
+          avatarUrl: true,
           createdAt: true,
           updatedAt: true,
         },
       });
     }
 
-    async updateUser(
-      id: number,
-      data: { name?: string; email?: string; avatarUrl?: string }
-    ) {
-      // Validar email
-      if (data.email) {
-        const exists = await this.prisma.user.findUnique({ where: { email: data.email } });
-        if (exists && exists.id !== id) throw new BadRequestException('Email ya registrado');
-      }
+ async updateUser(
+  id: number,
+  data: { name?: string; email?: string; avatarUrl?: string }
+) {
+  // Validar email duplicado
+  if (data.email) {
+    const exists = await this.prisma.user.findUnique({ where: { email: data.email } });
+    if (exists && exists.id !== id) throw new BadRequestException('Email ya registrado');
+  }
 
-      return this.prisma.user.update({
-        where: { id },
-        data: {
-          name: data.name,
-          email: data.email,
-          avatarUrl: data.avatarUrl, // ✅ agregar campo avatarUrl
-        },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          role: true,
-          avatarUrl: true, // ✅ incluir para que frontend lo reciba
-        },
-      });
-    }
+  // 🧩 Asegurar URL absoluta del avatar
+  let avatarUrl = data.avatarUrl;
+  if (avatarUrl && !avatarUrl.startsWith('http')) {
+    const baseUrl = process.env.API_URL || 'http://localhost:3000';
+    avatarUrl = `${baseUrl}${avatarUrl}`;
+  }
+
+  return this.prisma.user.update({
+    where: { id },
+    data: {
+      name: data.name,
+      email: data.email,
+      avatarUrl,
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      avatarUrl: true,
+    },
+  });
+}
 
 
   // Obtener usuarios filtrando por rol
@@ -76,6 +84,7 @@ export class UsersService {
         email: true,
         name: true,
         role: true,
+        avatarUrl: true,
         createdAt: true,
         updatedAt: true,
       },
