@@ -8,7 +8,8 @@ import {
   UploadedFile, 
   UseInterceptors, 
   BadRequestException, 
-  InternalServerErrorException 
+  InternalServerErrorException, 
+  NotFoundException
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -42,7 +43,7 @@ export class ProfileController {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
         const ext = extname(file.originalname);
         cb(null, `${(req as any).user.id}-${uniqueSuffix}${ext}`);
-      }
+      },
     }),
     fileFilter: (req, file, cb) => {
       if (!file.mimetype.match(/\/(jpg|jpeg|png|gif)$/)) {
@@ -57,19 +58,11 @@ export class ProfileController {
     @UploadedFile() avatar?: Express.Multer.File
   ) {
     try {
-      // Validar campos permitidos
-      const updateData: any = {};
-      if (data.name) updateData.name = data.name;
-      if (data.email) updateData.email = data.email;
-      if (avatar) updateData.avatarUrl = `/uploads/avatars/${avatar.filename}`;
-
-      // Actualizar usuario
-      const updatedUser = await this.usersService.updateUser(req.user.id, updateData);
-
-      if (!updatedUser) {
-        throw new BadRequestException('Usuario no encontrado o no se pudo actualizar');
+      if (avatar) {
+        data.avatarUrl = `/uploads/avatars/${avatar.filename}`;
       }
-
+      const updatedUser = await this.usersService.updateUser(req.user.id, data);
+      if (!updatedUser) throw new NotFoundException('Usuario no encontrado');
       return updatedUser;
     } catch (error) {
       console.error('Error al actualizar perfil:', error);
