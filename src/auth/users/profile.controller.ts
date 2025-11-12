@@ -7,7 +7,8 @@ import {
   UseGuards, 
   UploadedFile, 
   UseInterceptors, 
-  BadRequestException 
+  BadRequestException, 
+  InternalServerErrorException 
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -16,6 +17,7 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import type { Express } from 'express';
 import { Request } from 'express';
+import { existsSync, mkdirSync } from 'fs';
 
 @Controller('auth')
 export class ProfileController {
@@ -31,7 +33,11 @@ export class ProfileController {
   @Patch('profile')
   @UseInterceptors(FileInterceptor('avatar', {
     storage: diskStorage({
-      destination: './uploads/avatars',
+      destination: (req, file, cb) => {
+        const uploadPath = './uploads/avatars';
+        if (!existsSync(uploadPath)) mkdirSync(uploadPath, { recursive: true });
+        cb(null, uploadPath);
+      },
       filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
         const ext = extname(file.originalname);
@@ -50,9 +56,24 @@ export class ProfileController {
     @Body() data: { name?: string; email?: string; avatarUrl?: string },
     @UploadedFile() avatar?: Express.Multer.File
   ) {
-    if (avatar) {
-      data.avatarUrl = `/uploads/avatars/${avatar.filename}`;
+    try {
+      // Validar campos permitidos
+      const updateData: any = {};
+      if (data.name) updateData.name = data.name;
+      if (data.email) updateData.email = data.email;
+      if (avatar) updateData.avatarUrl = `/uploads/avatars/${avatar.filename}`;
+
+      // Actualizar usuario
+      const updatedUser = await this.usersService.updateUser(req.user.id, updateData);
+
+      if (!updatedUser) {
+        throw new BadRequestException('Usuario no encontrado o no se pudo actualizar');
+      }
+
+      return updatedUser;
+    } catch (error) {
+      console.error('Error al actualizar perfil:', error);
+      throw new InternalServerErrorException('No se pudo actualizar el perfil');
     }
-    return this.usersService.updateUser(req.user.id, data);
   }
 }

@@ -1,5 +1,4 @@
-// src/auth/users/users.service.ts
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
 
@@ -20,56 +19,74 @@ export class UsersService {
       },
     });
   }
-      // Obtener un usuario por ID
-    async getUserById(id: number) {
-      return this.prisma.user.findUnique({
+
+  // Obtener un usuario por ID
+  async getUserById(id: number) {
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        avatarUrl: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  // Actualizar usuario con manejo de errores
+  async updateUser(
+    id: number,
+    data: { name?: string; email?: string; avatarUrl?: string }
+  ) {
+    try {
+      // Verificar si el usuario existe
+      const existingUser = await this.prisma.user.findUnique({ where: { id } });
+      if (!existingUser) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+
+      // Validar email duplicado
+      if (data.email) {
+        const exists = await this.prisma.user.findUnique({ where: { email: data.email } });
+        if (exists && exists.id !== id) {
+          throw new BadRequestException('Email ya registrado');
+        }
+      }
+
+      // Asegurar URL absoluta del avatar
+      let avatarUrl = data.avatarUrl;
+      if (avatarUrl && !avatarUrl.startsWith('http')) {
+        const baseUrl = process.env.API_URL || 'http://localhost:3000';
+        avatarUrl = `${baseUrl}${avatarUrl}`;
+      }
+
+      // Actualizar el usuario
+      return await this.prisma.user.update({
         where: { id },
+        data: {
+          name: data.name,
+          email: data.email,
+          avatarUrl,
+        },
         select: {
           id: true,
           email: true,
           name: true,
           role: true,
           avatarUrl: true,
-          createdAt: true,
-          updatedAt: true,
         },
       });
+    } catch (error) {
+      console.error('Error en updateUser:', error);
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error; // Re-lanzar errores conocidos
+      }
+      throw new InternalServerErrorException('No se pudo actualizar el usuario');
     }
-
- async updateUser(
-  id: number,
-  data: { name?: string; email?: string; avatarUrl?: string }
-) {
-  // Validar email duplicado
-  if (data.email) {
-    const exists = await this.prisma.user.findUnique({ where: { email: data.email } });
-    if (exists && exists.id !== id) throw new BadRequestException('Email ya registrado');
   }
-
-  // 🧩 Asegurar URL absoluta del avatar
-  let avatarUrl = data.avatarUrl;
-  if (avatarUrl && !avatarUrl.startsWith('http')) {
-    const baseUrl = process.env.API_URL || 'http://localhost:3000';
-    avatarUrl = `${baseUrl}${avatarUrl}`;
-  }
-
-  return this.prisma.user.update({
-    where: { id },
-    data: {
-      name: data.name,
-      email: data.email,
-      avatarUrl,
-    },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      avatarUrl: true,
-    },
-  });
-}
-
 
   // Obtener usuarios filtrando por rol
   async getUsersByRole(role: string) {
