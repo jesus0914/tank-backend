@@ -24,7 +24,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  // Registro
+  // Registro de usuario
   async register(
     email: string,
     password: string,
@@ -47,7 +47,7 @@ export class AuthService {
     return { access_token: token, user };
   }
 
-  // Login
+  // Login de usuario
   async login(email: string, password: string): Promise<AuthResponse> {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) throw new UnauthorizedException('Credenciales inválidas');
