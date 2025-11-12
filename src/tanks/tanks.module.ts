@@ -1,15 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TanksService } from './tanks.service';
 import { TanksController } from './tanks.controller';
-import { PrismaModule } from '../prisma/prisma.module'; // ✅ Importar PrismaModule
-import { JwtModule } from '@nestjs/jwt'; // ✅ Importar JwtModule
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Module({
-  imports: [
-    PrismaModule,
-    JwtModule, // o AuthModule si exporta JwtModule
-  ],
   controllers: [TanksController],
-  providers: [TanksService],
+  providers: [TanksService, PrismaService],
+  exports: [TanksService],
 })
 export class TanksModule {}

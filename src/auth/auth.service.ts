@@ -1,10 +1,8 @@
 import {
   Injectable,
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-  InternalServerErrorException,
   UnauthorizedException,
+  ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
@@ -12,6 +10,9 @@ import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { User, UserRole } from '@prisma/client';
 
+/**
+ * Tipo exportado para que pueda usarse en controladores
+ */
 export interface AuthResponse {
   access_token: string;
   user: Partial<User>;
@@ -24,22 +25,42 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  // Registro
-  async register(email: string, password: string, name: string, role: UserRole = UserRole.USER): Promise<AuthResponse> {
+  /**
+   * Registro de usuario
+   */
+  async register(
+    email: string,
+    password: string,
+    name: string,
+    role: UserRole = UserRole.USER,
+  ): Promise<AuthResponse> {
     if (!email.includes('@')) throw new BadRequestException('Email inválido');
-    if (password.length < 6) throw new BadRequestException('La contraseña debe tener al menos 6 caracteres');
+    if (password.length < 6)
+      throw new BadRequestException(
+        'La contraseña debe tener al menos 6 caracteres',
+      );
 
     const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) throw new ConflictException('Email ya registrado');
 
     const hashed = await bcrypt.hash(password, 12);
-    const user = await this.prisma.user.create({ data: { email, password: hashed, name, role } });
 
-    const token = this.generateJwt({ sub: user.id, email: user.email, role: user.role });
+    const user = await this.prisma.user.create({
+      data: { email, password: hashed, name, role },
+    });
+
+    const token = this.generateJwt({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
     return { access_token: token, user };
   }
 
-  // Login
+  /**
+   * Login de usuario
+   */
   async login(email: string, password: string): Promise<AuthResponse> {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) throw new UnauthorizedException('Credenciales inválidas');
@@ -47,57 +68,66 @@ export class AuthService {
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) throw new UnauthorizedException('Credenciales inválidas');
 
-    const token = this.generateJwt({ sub: user.id, email: user.email, role: user.role });
+    const token = this.generateJwt({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
     return { access_token: token, user };
   }
 
+  /**
+   * Genera JWT seguro
+   */
   private generateJwt(payload: JwtPayload): string {
     return this.jwtService.sign(payload, { expiresIn: '7d' });
   }
 
-  // Obtener perfil
-  async getProfile(userId: number) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('Usuario no encontrado');
+    async updateProfile(
+    userId: number,
+    data: { name?: string; email?: string; avatarUrl?: string },
+  ) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data,
+    });
 
-    const baseUrl = process.env.API_URL || 'http://localhost:3000';
-    return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatarUrl: user.avatarUrl ? `${baseUrl}${user.avatarUrl.startsWith('/') ? '' : '/'}${user.avatarUrl}` : null,
-    };
+    return this.getProfile(userId);
   }
 
-  // Actualizar perfil
-  async updateProfile(userId: number, data: { name?: string; email?: string; avatarUrl?: string }) {
-    try {
+
+      /**
+       * Obtener perfil del usuario
+       */
+    async getProfile(userId: number) {
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
-      if (!user) throw new NotFoundException('Usuario no encontrado');
+      if (!user) throw new UnauthorizedException('Usuario no encontrado');
 
-      if (data.email && data.email !== user.email) {
-        const exists = await this.prisma.user.findUnique({ where: { email: data.email } });
-        if (exists) throw new ConflictException('Email ya registrado');
-      }
-
-      let avatarUrl = data.avatarUrl;
-      if (avatarUrl && !avatarUrl.startsWith('http')) {
-        const baseUrl = process.env.API_URL || 'http://localhost:3000';
-        avatarUrl = `${baseUrl}${avatarUrl.startsWith('/') ? '' : '/'}${avatarUrl}`;
-      }
-
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { ...data, avatarUrl },
-      });
-
-      return this.getProfile(userId);
-    } catch (err) {
-      console.error('Error updateProfile:', err);
-      if (err instanceof BadRequestException || err instanceof ConflictException || err instanceof NotFoundException)
-        throw err;
-      throw new InternalServerErrorException('No se pudo actualizar el perfil');
+      const baseUrl = process.env.API_URL || 'http://localhost:3000';
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        avatarUrl: user.avatarUrl
+          ? `${baseUrl}${user.avatarUrl.startsWith('/') ? '' : '/'}${user.avatarUrl}`
+          : null,
+      };
     }
+
+  /**
+   * Validar usuario
+   */
+  async validateUser(userId: number): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { id: userId } });
+  }
+
+  /**
+   * Verificar rol
+   */
+  async hasRole(userId: number, role: UserRole): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('Usuario no encontrado');
+    return user.role === role;
   }
 }
