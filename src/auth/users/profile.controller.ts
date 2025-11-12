@@ -16,9 +16,9 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { existsSync, mkdirSync } from 'fs';
 import type { Express } from 'express';
 import { Request } from 'express';
-import { existsSync, mkdirSync } from 'fs';
 
 @Controller('auth')
 export class ProfileController {
