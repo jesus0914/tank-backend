@@ -24,8 +24,13 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  // Registro
-  async register(email: string, password: string, name: string, role: UserRole = UserRole.USER): Promise<AuthResponse> {
+  // Registro de usuario
+  async register(
+    email: string,
+    password: string,
+    name: string,
+    role: UserRole = UserRole.USER,
+  ): Promise<AuthResponse> {
     if (!email.includes('@')) throw new BadRequestException('Email inválido');
     if (password.length < 6) throw new BadRequestException('La contraseña debe tener al menos 6 caracteres');
 
@@ -56,7 +61,10 @@ export class AuthService {
   }
 
   // Actualizar perfil
-  async updateProfile(userId: number, data: { name?: string; email?: string; avatarUrl?: string }) {
+  async updateProfile(
+    userId: number,
+    data: { name?: string; email?: string; avatarUrl?: string },
+  ) {
     try {
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
       if (!user) throw new NotFoundException('Usuario no encontrado');
@@ -64,25 +72,30 @@ export class AuthService {
       // Validar email duplicado
       if (data.email && data.email !== user.email) {
         const exists = await this.prisma.user.findUnique({ where: { email: data.email } });
-        if (exists) throw new ConflictException('Email ya registrado');
+        if (exists && exists.id !== userId) throw new ConflictException('Email ya registrado');
       }
 
-      // Construir URL absoluta del avatar
+      // URL absoluta solo si se envía avatar
       let avatarUrl = data.avatarUrl;
       if (avatarUrl && !avatarUrl.startsWith('http')) {
         const baseUrl = process.env.API_URL || 'http://localhost:3000';
         avatarUrl = `${baseUrl}${avatarUrl.startsWith('/') ? '' : '/'}${avatarUrl}`;
       }
 
-      const updated = await this.prisma.user.update({
+      const updatedUser = await this.prisma.user.update({
         where: { id: userId },
         data: { ...data, avatarUrl },
+        select: { id: true, name: true, email: true, role: true, avatarUrl: true },
       });
 
-      return this.getProfile(userId);
+      return updatedUser;
     } catch (err) {
       console.error('Error updateProfile:', err);
-      if (err instanceof BadRequestException || err instanceof ConflictException || err instanceof NotFoundException)
+      if (
+        err instanceof BadRequestException ||
+        err instanceof ConflictException ||
+        err instanceof NotFoundException
+      )
         throw err;
       throw new InternalServerErrorException('No se pudo actualizar el perfil');
     }
