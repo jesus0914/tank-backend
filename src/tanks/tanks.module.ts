@@ -3,11 +3,12 @@ import { Module } from '@nestjs/common';
 import { TanksService } from './tanks.service';
 import { TanksController } from './tanks.controller';
 import { PrismaModule } from '../prisma/prisma.module';
+import { AuthModule } from '../auth/auth.module'; // 👈 importar
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, AuthModule], // 👈 añadir aquí
   controllers: [TanksController],
   providers: [TanksService],
-  exports: [TanksService], // 👈 IMPORTANTE: exportarlo para que otros módulos lo usen
+  exports: [TanksService],
 })
 export class TanksModule {}
