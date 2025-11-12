@@ -24,7 +24,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  // Registro de usuario
+  // Registro
   async register(
     email: string,
     password: string,
@@ -56,6 +56,7 @@ export class AuthService {
     return { access_token: token, user };
   }
 
+  // Generar JWT
   private generateJwt(payload: JwtPayload): string {
     return this.jwtService.sign(payload, { expiresIn: '7d' });
   }
@@ -65,6 +66,8 @@ export class AuthService {
     userId: number,
     data: { name?: string; email?: string; avatarUrl?: string },
   ) {
+    if (!userId) throw new UnauthorizedException('Usuario no autenticado');
+
     try {
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
       if (!user) throw new NotFoundException('Usuario no encontrado');
@@ -72,23 +75,22 @@ export class AuthService {
       // Validar email duplicado
       if (data.email && data.email !== user.email) {
         const exists = await this.prisma.user.findUnique({ where: { email: data.email } });
-        if (exists && exists.id !== userId) throw new ConflictException('Email ya registrado');
+        if (exists) throw new ConflictException('Email ya registrado');
       }
 
-      // URL absoluta solo si se envía avatar
+      // URL absoluta del avatar
       let avatarUrl = data.avatarUrl;
       if (avatarUrl && !avatarUrl.startsWith('http')) {
         const baseUrl = process.env.API_URL || 'http://localhost:3000';
         avatarUrl = `${baseUrl}${avatarUrl.startsWith('/') ? '' : '/'}${avatarUrl}`;
       }
 
-      const updatedUser = await this.prisma.user.update({
+      await this.prisma.user.update({
         where: { id: userId },
         data: { ...data, avatarUrl },
-        select: { id: true, name: true, email: true, role: true, avatarUrl: true },
       });
 
-      return updatedUser;
+      return this.getProfile(userId);
     } catch (err) {
       console.error('Error updateProfile:', err);
       if (
