@@ -8,8 +8,6 @@ import { AuthModule } from '../auth/auth.module'; // si usas AuthService o JwtAu
 @Module({
   imports: [
     PrismaModule,
-    JwtModule.register({}), // ⚠️ necesario si usas JwtService directamente
-    AuthModule,             // ⚠️ si JwtAuthGuard depende de AuthModule
   ],
   controllers: [TanksController],
   providers: [TanksService],
