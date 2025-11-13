@@ -1,15 +1,24 @@
-// src/auth/users/users.module.ts
 import { Module } from '@nestjs/common';
-import { UsersService } from './users.service';
+import { MulterModule } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 import { UsersController } from './users.controller';
-import { PrismaService } from '../../prisma/prisma.service';
-import { ProfileController } from './profile.controller';
-import { AuthModule } from '../auth.module';
+import { UsersService } from './users.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Module({
-  imports: [AuthModule],
-  controllers: [UsersController,ProfileController],
+  imports: [
+    MulterModule.register({
+      storage: diskStorage({
+        destination: './uploads/avatars',
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, `${uniqueSuffix}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  ],
+  controllers: [UsersController],
   providers: [UsersService, PrismaService],
-  exports: [UsersService],
 })
-export class UsersModule {}
+export class UserModule {}

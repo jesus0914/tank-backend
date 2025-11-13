@@ -11,15 +11,20 @@ generator client {
 /// Usuarios (auth)
 /// ========================
 model User {
-  id            Int           @id @default(autoincrement())
-  email         String        @unique
-  password      String
-  name          String?
-  role          UserRole      @default(USER)
-  avatarUrl String?  
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  subscriptions Subscription[]
+  id             Int      @id @default(autoincrement())
+  identification String   @unique // Identificación del usuario (cédula o ID)
+  email          String   @unique
+  password       String
+  name           String
+  lastName       String
+  phone          String
+  address        String
+  avatarUrl      String? // Foto del usuario
+  role           UserRole @default(USER)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  subscriptions Subscription[] // Relación con suscripciones
 }
 
 enum UserRole {
@@ -31,18 +36,18 @@ enum UserRole {
 /// Tanques e historial
 /// ========================
 model Tank {
-  id          Int           @id @default(autoincrement())
-  name        String
-  level       Float
-  liters      Float
-  fills       Int           @default(0)
-  online      Boolean       @default(false)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id        Int      @id @default(autoincrement())
+  name      String
+  level     Float
+  liters    Float
+  fills     Int      @default(0)
+  online    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   tankHistory TankHistory[]
-  
-  alerts      Alert[]       // RELACIÓN INVERSA para Alert
-  reports     Report[]      // RELACIÓN INVERSA para Report
+  alerts      Alert[]
+  reports     Report[]
 }
 
 model TankHistory {
@@ -52,7 +57,7 @@ model TankHistory {
   liters    Int
   fills     Int
   createdAt DateTime @default(now())
-  
+
   tank Tank @relation(fields: [tankId], references: [id])
 }
 
@@ -66,7 +71,7 @@ model Alert {
   message   String
   active    Boolean   @default(true)
   createdAt DateTime  @default(now())
-  
+
   tank Tank @relation(fields: [tankId], references: [id])
 }
 
@@ -83,7 +88,7 @@ model Report {
   tankId    Int
   data      Json
   createdAt DateTime @default(now())
-  
+
   tank Tank @relation(fields: [tankId], references: [id])
 }
 
@@ -91,28 +96,30 @@ model Report {
 /// Facturación / Suscripciones
 /// ========================
 model Plan {
-  id           Int      @id @default(autoincrement())
-  name         String   @unique
-  price        Float    // Precio en COP
-  description  String   // Características del plan
-  maxTanks     Int      // Cantidad máxima de tanques incluidos
-  support      Boolean  @default(false) // Si incluye soporte remoto
-  interval     PlanInterval
-  createdAt    DateTime @default(now())
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  price       Float // Precio en COP
+  description String
+  maxTanks    Int // Número máximo de tanques incluidos
+  support     Boolean      @default(false) // Soporte técnico remoto
+  interval    PlanInterval
+  createdAt   DateTime     @default(now())
+
   subscriptions Subscription[]
 }
 
 enum PlanInterval {
   MONTHLY
+  QUARTERLY
   YEARLY
 }
 
 model Subscription {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   userId    Int
   planId    Int
-  active    Boolean  @default(true)
-  startedAt DateTime @default(now())
+  active    Boolean   @default(true)
+  startedAt DateTime  @default(now())
   endedAt   DateTime?
 
   user User @relation(fields: [userId], references: [id])
