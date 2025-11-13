@@ -9,7 +9,9 @@ async function bootstrap() {
 
   // ✅ Habilitar CORS para tu frontend
   app.enableCors({
-    origin: true, // ⚠️ aquí tu frontend
+      origin: [
+      'http://localhost:8100', // tu app Ionic local
+    ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
