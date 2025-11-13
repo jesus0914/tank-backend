@@ -77,13 +77,12 @@ export class AuthService {
   // ------------------------
   // ACTUALIZAR PERFIL DE USUARIO
   // ------------------------
-  async updateProfile(userId: number, data: any) {
+   async updateProfile(userId: number, data: any) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new UnauthorizedException('Usuario no encontrado');
     }
 
-    // Evita cambios peligrosos
     const { email, password, role, ...safeData } = data;
 
     const updatedUser = await this.prisma.user.update({
@@ -105,4 +104,5 @@ export class AuthService {
 
     return { message: 'Perfil actualizado correctamente', user: updatedUser };
   }
+
 }
