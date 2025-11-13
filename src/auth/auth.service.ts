@@ -1,108 +1,44 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { UsersService } from '../users/users.service';
+import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { UserRole } from '@prisma/client';
+import { RegisterDto } from './dto/register.dto';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService,
-  ) {}
+  constructor(private usersService: UsersService, private jwtService: JwtService) {}
 
-  // ------------------------
-  // REGISTRO DE USUARIO
-  // ------------------------
-  async register(dto: {
-    email: string;
-    password: string;
-    name: string;
-    lastName?: string;
-    identification?: string;
-    phone?: string;
-    address?: string;
-    role?: UserRole;
-  }) {
-    const { email, password, name, lastName, identification, phone, address, role } = dto;
-
-    const existingUser = await this.prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      throw new UnauthorizedException('El correo electrónico ya está registrado');
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = await this.prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-        lastName: lastName || '',
-        identification: identification || '',
-        phone: phone || '',
-        address: address || '',
-        role: role || UserRole.USER,
-      },
-    });
-
-    const token = await this.jwtService.signAsync({
-      id: newUser.id,
-      email: newUser.email,
-      role: newUser.role,
-    });
-
-    return { message: 'Usuario registrado con éxito', token };
+  async register(dto: RegisterDto) {
+    // UsersService.createUser hace la validación de duplicados
+    const created = await this.usersService.createUser(dto);
+    const payload = { sub: created.id, email: created.email, role: created.role };
+    const access_token = this.jwtService.sign(payload);
+    return { access_token, user: this.sanitize(created) };
   }
 
-  // ------------------------
-  // INICIO DE SESIÓN
-  // ------------------------
   async login(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const user = await this.usersService.findByEmail(email);
     if (!user) throw new UnauthorizedException('Credenciales inválidas');
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) throw new UnauthorizedException('Credenciales inválidas');
 
-    const token = await this.jwtService.signAsync({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    });
-
-    return { message: 'Inicio de sesión exitoso', token };
+    const payload = { sub: user.id, email: user.email, role: user.role };
+    const access_token = this.jwtService.sign(payload);
+    return { access_token, user: this.sanitize(user) };
   }
 
-  // ------------------------
-  // ACTUALIZAR PERFIL DE USUARIO
-  // ------------------------
-   async updateProfile(userId: number, data: any) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      throw new UnauthorizedException('Usuario no encontrado');
-    }
-
-    const { email, password, role, ...safeData } = data;
-
-    const updatedUser = await this.prisma.user.update({
-      where: { id: userId },
-      data: safeData,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        lastName: true,
-        identification: true,
-        phone: true,
-        address: true,
-        avatarUrl: true,
-        role: true,
-        updatedAt: true,
-      },
-    });
-
-    return { message: 'Perfil actualizado correctamente', user: updatedUser };
+  sanitize(user: any) {
+    const { password, ...rest } = user;
+    return rest;
   }
 
+  async getProfile(userId: number) {
+    return this.sanitize(await this.usersService.getUserById(userId));
+  }
+
+  async updateProfile(userId: number, data: any) {
+    const updated = await this.usersService.updateUser(userId, data);
+    return this.sanitize(updated);
+  }
 }

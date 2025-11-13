@@ -7,43 +7,48 @@ generator client {
   provider = "prisma-client-js"
 }
 
-/// ========================
-/// Usuarios (auth)
-/// ========================
-model User {
-  id             Int      @id @default(autoincrement())
-  identification String   @unique // Identificación del usuario (cédula o ID)
-  email          String   @unique
-  password       String
-  name           String
-  lastName       String
-  phone          String
-  address        String
-  avatarUrl      String? // Foto del usuario
-  role           UserRole @default(USER)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  subscriptions Subscription[] // Relación con suscripciones
-}
-
 enum UserRole {
   USER
   ADMIN
 }
 
-/// ========================
-/// Tanques e historial
-/// ========================
+enum AlertType {
+  LOW_LEVEL
+  OVERFLOW
+}
+
+enum PlanInterval {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+model User {
+  id             Int            @id @default(autoincrement())
+  identification String?        @unique
+  email          String         @unique
+  password       String
+  name           String
+  lastName       String?
+  phone          String?
+  address        String?
+  avatarUrl      String?
+  role           UserRole       @default(USER)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  subscriptions  Subscription[]
+}
+
 model Tank {
-  id        Int      @id @default(autoincrement())
-  name      String
-  level     Float
-  liters    Float
-  fills     Int      @default(0)
-  online    Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int           @id @default(autoincrement())
+  name        String
+  level       Float
+  liters      Float
+  fills       Int           @default(0)
+  online      Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   tankHistory TankHistory[]
   alerts      Alert[]
@@ -61,9 +66,6 @@ model TankHistory {
   tank Tank @relation(fields: [tankId], references: [id])
 }
 
-/// ========================
-/// Alertas automáticas
-/// ========================
 model Alert {
   id        Int       @id @default(autoincrement())
   tankId    Int
@@ -75,14 +77,6 @@ model Alert {
   tank Tank @relation(fields: [tankId], references: [id])
 }
 
-enum AlertType {
-  LOW_LEVEL
-  OVERFLOW
-}
-
-/// ========================
-/// Reportes históricos
-/// ========================
 model Report {
   id        Int      @id @default(autoincrement())
   tankId    Int
@@ -92,34 +86,25 @@ model Report {
   tank Tank @relation(fields: [tankId], references: [id])
 }
 
-/// ========================
-/// Facturación / Suscripciones
-/// ========================
 model Plan {
-  id          Int          @id @default(autoincrement())
-  name        String       @unique
-  price       Float // Precio en COP
-  description String
-  maxTanks    Int // Número máximo de tanques incluidos
-  support     Boolean      @default(false) // Soporte técnico remoto
-  interval    PlanInterval
-  createdAt   DateTime     @default(now())
+  id           Int      @id @default(autoincrement())
+  name         String   @unique
+  price        Float
+  description  String
+  maxTanks     Int
+  support      Boolean  @default(false)
+  interval     PlanInterval
+  createdAt    DateTime @default(now())
 
   subscriptions Subscription[]
 }
 
-enum PlanInterval {
-  MONTHLY
-  QUARTERLY
-  YEARLY
-}
-
 model Subscription {
-  id        Int       @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   userId    Int
   planId    Int
-  active    Boolean   @default(true)
-  startedAt DateTime  @default(now())
+  active    Boolean  @default(true)
+  startedAt DateTime @default(now())
   endedAt   DateTime?
 
   user User @relation(fields: [userId], references: [id])

@@ -8,10 +8,10 @@ import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
-    forwardRef(() => UsersModule), // 🔥 rompe el ciclo circular
+    forwardRef(() => UsersModule),
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'secret123',
+      secret: process.env.JWT_SECRET || 'supersecretkey',
       signOptions: { expiresIn: '7d' },
     }),
   ],

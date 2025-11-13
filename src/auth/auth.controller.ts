@@ -1,66 +1,32 @@
-import {
-  Controller,
-  Patch,
-  UseGuards,
-  UseInterceptors,
-  UploadedFile,
-  Body,
-  Req,
-} from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import type { Request } from 'express';
-
+import { Controller, Post, Body, UseGuards, Get, Patch, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private authService: AuthService) {}
 
-  /**
-   * Actualizar perfil del usuario (nombre, email, avatar)
-   */
-  @Patch('profile')
+  @Post('register')
+  register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto);
+  }
+
+  @Post('login')
+  login(@Body() dto: LoginDto) {
+    return this.authService.login(dto.email, dto.password);
+  }
+
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(
-    FileInterceptor('avatar', {
-      storage: diskStorage({
-        destination: './uploads/avatars',
-        filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
-        },
-      }),
-      fileFilter: (req, file, cb) => {
-        if (!file.mimetype.startsWith('image/')) {
-          return cb(new Error('Solo se permiten imágenes'), false);
-        }
-        cb(null, true);
-      },
-    }),
-  )
-  async updateProfile(
-    @UploadedFile() avatar: Express.Multer.File,
-    @Body() body: { name?: string; email?: string },
-    @Req() req: Request,
-  ) {
-    // 🔹 Type assertion: decimos que req.user es JwtPayload
-    const user = req.user as JwtPayload;
-    const userId = user.sub;
+  @Get('profile')
+  getProfile(@Req() req: any) {
+    return this.authService.getProfile(req.user.sub);
+  }
 
-    const data: any = { ...body };
-
-    if (avatar) {
-      data.avatarUrl = `/uploads/avatars/${avatar.filename}`;
-    }
-
-    // Llamamos al servicio para actualizar en DB
-    const updatedProfile = await this.authService.updateProfile(userId, data);
-
-    return updatedProfile;
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile')
+  updateProfile(@Req() req: any, @Body() data: any) {
+    return this.authService.updateProfile(req.user.sub, data);
   }
 }
