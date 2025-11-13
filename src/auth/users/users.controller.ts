@@ -1,58 +1,61 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Param,
-  Body,
-  UseInterceptors,
-  UploadedFile,
+import { 
+  Controller, 
+  Get, 
+  Post, 
+  Body, 
+  Param, 
+  Delete, 
+  Put, 
+  Req, 
+  UseGuards 
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  // 🧩 Crear un nuevo usuario
   @Post()
-  @UseInterceptors(
-    FileInterceptor('avatar', {
-      storage: diskStorage({
-        destination: './uploads/avatars',
-        filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
-        },
-      }),
-    }),
-  )
-  async createUser(@Body() body: any, @UploadedFile() file?: Express.Multer.File) {
-    const avatarUrl = file ? `/uploads/avatars/${file.filename}` : null;
-    return this.usersService.createUser({ ...body, avatarUrl });
+  async createUser(@Body() data: any) {
+    return this.usersService.createUser(data);
   }
 
+  // 📋 Obtener todos los usuarios
+  @UseGuards(JwtAuthGuard)
   @Get()
-  async getAll() {
+  async getAllUsers() {
     return this.usersService.getAllUsers();
   }
 
+  // 👤 Obtener perfil del usuario autenticado
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  async getProfile(@Req() req) {
+    // req.user viene del token JWT decodificado
+    const userId = req.user.id;
+    return this.usersService.getUserById(userId);
+  }
+
+  // 🔍 Obtener usuario por ID
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
-  async getById(@Param('id') id: string) {
+  async getUserById(@Param('id') id: string) {
     return this.usersService.getUserById(Number(id));
   }
 
+  // ✏️ Actualizar usuario
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
-  async update(@Param('id') id: string, @Body() body: any) {
-    return this.usersService.updateUser(Number(id), body);
+  async updateUser(@Param('id') id: string, @Body() data: any) {
+    return this.usersService.updateUser(Number(id), data);
   }
 
+  // ❌ Eliminar usuario
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  async remove(@Param('id') id: string) {
+  async deleteUser(@Param('id') id: string) {
     return this.usersService.deleteUser(Number(id));
   }
 }
