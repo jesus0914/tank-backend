@@ -11,6 +11,9 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
+  // ------------------------
+  // REGISTRO DE USUARIO
+  // ------------------------
   async register(dto: {
     email: string;
     password: string;
@@ -23,16 +26,13 @@ export class AuthService {
   }) {
     const { email, password, name, lastName, identification, phone, address, role } = dto;
 
-    // Verificar si ya existe el usuario
     const existingUser = await this.prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       throw new UnauthorizedException('El correo electrónico ya está registrado');
     }
 
-    // Encriptar la contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Crear el usuario en la base de datos
     const newUser = await this.prisma.user.create({
       data: {
         email,
@@ -46,7 +46,6 @@ export class AuthService {
       },
     });
 
-    // Generar token JWT
     const token = await this.jwtService.signAsync({
       id: newUser.id,
       email: newUser.email,
@@ -56,6 +55,9 @@ export class AuthService {
     return { message: 'Usuario registrado con éxito', token };
   }
 
+  // ------------------------
+  // INICIO DE SESIÓN
+  // ------------------------
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) throw new UnauthorizedException('Credenciales inválidas');
@@ -70,5 +72,37 @@ export class AuthService {
     });
 
     return { message: 'Inicio de sesión exitoso', token };
+  }
+
+  // ------------------------
+  // ACTUALIZAR PERFIL DE USUARIO
+  // ------------------------
+  async updateProfile(userId: number, data: any) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado');
+    }
+
+    // Evita cambios peligrosos
+    const { email, password, role, ...safeData } = data;
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: safeData,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        lastName: true,
+        identification: true,
+        phone: true,
+        address: true,
+        avatarUrl: true,
+        role: true,
+        updatedAt: true,
+      },
+    });
+
+    return { message: 'Perfil actualizado correctamente', user: updatedUser };
   }
 }
